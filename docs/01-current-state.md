@@ -135,7 +135,10 @@ documented. Do not put credentials or sensitive backup contents into Git.
 
 ## Next Session
 
-Resume at DOCX Chapter 2, "Ubuntu Host and Virtualization Foundation", using
-FUTO as the guiding reference. Inspect existing host/VM state before applying
-any setup commands; much of this chapter is already reported complete.
+Continue with network-wide DNS filtering / ad blocking, using FUTO as the
+guiding reference and DOCX section 8.3 as the recorded next milestone. The
+user's follow-up agenda supersedes the earlier plan to revisit DOCX Chapter 2.
+Compare Unbound blocklists with AdGuard Home before selecting or installing
+anything. Filtering is not yet documented as enabled. Verify the actual LAN
+client/DHCP/DNS path before changes; full switch/AP deployment remains unconfirmed.
 See [the next-session handoff](04-next-session.md) for the starting checklist.

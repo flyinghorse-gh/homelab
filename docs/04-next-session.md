@@ -12,12 +12,16 @@ is the guiding reference (link supplied by the local DOCX; the website was not
 reviewed during this documentation migration). Adapt its steps to the actual
 ThinkCentre/Ubuntu/KVM/OPNsense design and shared upstream router constraints.
 
-The user explicitly chose **Chapter 2 of the
-[Part 1 v6 DOCX](reference/ThinkCentre_OPNsense_Self_Managed_Setup_Part_1_v6.docx):
-"Ubuntu Host and Virtualization Foundation"** for the next chat. This is a
-review/resumption point, not evidence that later chapters are unfinished.
-The reference already reports milestones through Chapter 7 complete and lists
-DNS filtering as a later FUTO milestone; do not skip to it automatically.
+The next milestone is **network-wide DNS filtering / ad blocking**, adapting
+FUTO's pfBlockerNG approach to OPNsense. This follows the user's supplied
+ChatGPT web agenda and section 8.3 of the
+[Part 1 v6 DOCX](reference/ThinkCentre_OPNsense_Self_Managed_Setup_Part_1_v6.docx).
+It supersedes the earlier plan to revisit DOCX Chapter 2. Do not confuse a
+new phase of this project with the DOCX's existing chapter numbering.
+
+First compare Unbound blocklists and AdGuard Home. Unbound is the provisional
+recommendation because it is already reported enabled; the user has not yet
+selected an engine. No filtering configuration or installation has been done.
 
 ## Read First
 
@@ -28,37 +32,57 @@ DNS filtering as a later FUTO milestone; do not skip to it automatically.
 5. `docs/decisions.md`
 6. `docs/03-network-and-access.md`
 7. This handoff and relevant history entries.
-8. DOCX Chapter 2 before working through its steps; consult FUTO for guide
+8. DOCX sections 8.2–8.3 and relevant networking sections; consult FUTO for guide
    context when needed rather than assuming its contents.
 
-## Chapter 2 Starting Checklist
+## DNS Filtering Agenda
 
-Begin with read-only inspection. Establish the actual connection method and
-verify access before running host commands. Do not assume this Windows
-workspace already has usable SSH credentials or a working route to Ubuntu.
+1. Compare Unbound blocklists and AdGuard Home with the user before installing
+   anything. If AdGuard Home is selected, decide placement, resolver chain,
+   listening addresses/ports, and service recovery before changing DNS.
+2. Inspect current OPNsense version, Unbound settings, DHCP DNS options, and
+   DNS servers actually used by a private LAN client. Check IPv6 DNS settings
+   if enabled. Establish a working LAN test client: full switch/AP deployment
+   and normal client Internet routing are not yet confirmed.
+3. Verify management access and baseline DNS, then create an encrypted backup
+   outside Git and record how to revert the proposed DNS/DHCP changes.
+4. Configure the chosen resolver for the private LAN with a small, reviewed
+   selection of lists. Validate one client before broader rollout. With
+   Unbound on OPNsense, the intended DNS endpoint is `192.168.5.1`; if another
+   architecture is chosen, document its actual endpoint and query path.
+5. Test an intentionally blocked domain, normal resolution, query latency,
+   browsing, updates, and important applications. Recheck SSH, Tailscale, and
+   DuckDNS. Test allowlisting a false positive and reverting the change.
+6. Only after filtering works, separately decide whether to restrict external
+   DNS. Account for IPv4/IPv6, VPNs, and encrypted DNS; a port-53 rule alone
+   must not be described as preventing all bypass. Supply a specific rollback
+   before any firewall enforcement change.
+7. Keep remote Tailscale DNS unchanged initially. Remote-device filtering is
+   optional and requires a separate decision. IP reputation, GeoIP, and IDS
+   are also separate work, not requirements for this first filtering pass.
+8. Record chosen architecture, list sources/update behavior, intentional
+   exceptions, rules, dated test results, and rollback instructions.
 
-| DOCX section | Recorded state | Next action |
-|---|---|---|
-| 2.1 KVM/QEMU/libvirt | Working; prior libvirt account issue resolved | Inspect installed packages/versions, service health, and VM inventory |
-| 2.2 Headless access | SSH enabled and previously verified remotely | Check service state and current SSH access |
-| 2.3 Sleep and autostart | Masking described; VM autostart reported enabled | Inspect target states and persistent VM autostart configuration |
-| 2.4 Power-cut recovery | BIOS setting instructed, not confirmed | Determine current BIOS setting and plan any recovery test safely |
+Keep the shared upstream router/network untouched. Do not assume existing
+SSH credentials, current reachability, or a tested recovery path. Explain
+impact before potentially disruptive changes and verify each logical step.
 
-Useful inspection commands include `systemctl is-enabled ssh`,
-`systemctl is-enabled sleep.target suspend.target hibernate.target hybrid-sleep.target`,
-`virsh --version`, `sudo virsh list --all`, and `sudo virsh dominfo opnsense`.
-Masked targets can return a nonzero exit code; interpret their reported states.
-Also collect hostname, OS version, CPU/RAM, disks, and network state as needed
-to close the documented inventory gaps. No such live checks were run during
-the documentation migration.
+## Comparison References
 
-Do not rerun package installation, service restarts, interface changes, VM
-creation, or masking commands simply because they appear in the guide.
-Explain impact and supply rollback for potentially disruptive changes. A
-reboot/power-loss test can interrupt routing and remote access; plan it with
-the user and a verified recovery path before execution.
+Official product documentation checked during agenda reconciliation:
 
-## Pending Beyond Chapter 2
+- [OPNsense Unbound](https://docs.opnsense.org/manual/unbound.html): integrated
+  blocklists, allowlists, source-network policies, and reporting integration.
+  Check the installed release before relying on a particular UI feature.
+- [AdGuard Home](https://github.com/AdguardTeam/AdGuardHome): a separate DNS
+  filtering service. DNS-level blocking cannot distinguish ads from wanted
+  content sharing the same domain; do not promise removal of every ad.
+
+## Other Open Tasks
+
+- Verify host inventory, SSH/service health, sleep settings, VM autostart, and
+  BIOS power-loss recovery. These remain open checks, not a mandate to rebuild
+  the foundation before comparing DNS options.
 
 - Confirm removal of temporary libvirt/default NIC and OPT1 assignment.
 - Confirm physical LAN switch/AP deployment, normal client routing, and
@@ -73,9 +97,10 @@ Update current state, component docs, decisions where needed, dated history,
 and this handoff after meaningful work. Record actual checks and unresolved
 items; distinguish historical evidence from live observations.
 
-The user approved staging and creating a local documentation-migration commit
-on 2026-09-27. Pushing was not authorized. Inspect `git status` and history in
-the next chat to establish the current commit and synchronization state.
+Documentation migration commit `ebb717c` was created with approval on
+2026-09-27. The user reported pushing it themselves and subsequently authorized
+committing and pushing the DNS-agenda correction to `origin/main`. Inspect
+`git status` and history when resuming to confirm the synchronization state.
 Codex must ask before committing and before pushing, including to `main`.
 Present the concrete diff/check results and push destination before asking;
 approval to edit files or commit does not imply approval to push.
@@ -85,6 +110,8 @@ approval to edit files or commit does not imply approval to push.
 > Read AGENTS.md, README.md, docs/01-current-state.md,
 > docs/02-installation-history.md, docs/decisions.md,
 > docs/03-network-and-access.md, and docs/04-next-session.md. Use FUTO as our
-> guiding reference and resume at Chapter 2 of the Part 1 v6 DOCX, "Ubuntu Host
-> and Virtualization Foundation". Start by inspecting what already exists.
+> guiding reference and continue with network-wide DNS filtering / ad blocking,
+> the next milestone in DOCX section 8.3. Start by comparing Unbound blocklists
+> with AdGuard Home and inspecting the private LAN's current DNS path. Do not
+> install anything before we choose the architecture.
 > Keep docs/progress current and ask me before committing or pushing.

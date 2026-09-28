@@ -87,6 +87,18 @@ Git history confirms the initial documentation and reference-document commits.
 VS Code/Codex are in use. The user requires approval before Codex commits or
 pushes any changes, including pushes to `main`.
 
-No infrastructure was changed or live-verified during migration. The next chat
-will resume at DOCX Chapter 2 with inspection of existing state. See
+No infrastructure was changed or live-verified during migration. The initial
+handoff targeted DOCX Chapter 2; the follow-up below supersedes that agenda. See
 [the migration log](../history/2026-09-27-documentation-migration.md).
+
+## 2026-09-27 — Next Milestone Clarified
+
+The user supplied the previous ChatGPT web agenda: network-wide DNS filtering
+and ad blocking, adapting FUTO to OPNsense. This matches DOCX section 8.3 and
+replaces the plan to revisit the Ubuntu/virtualization chapter. The first
+decision is Unbound blocklists versus AdGuard Home; neither has been selected
+or configured as part of this work. See [the current handoff](04-next-session.md).
+
+Documentation migration commit `ebb717c` was created with user approval; the
+user reported pushing it themselves. The user subsequently authorized a
+separate commit and push of the agenda corrections. No infrastructure was changed.

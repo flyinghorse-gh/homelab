@@ -145,6 +145,9 @@ The Part 1 v6 DOCX records the local ThinkCentre adaptations and earlier work;
 Markdown records ongoing verified state and progress. Apply guide steps only
 after checking their fit with the existing infrastructure and safety rules.
 
-The user selected DOCX Chapter 2, "Ubuntu Host and Virtualization Foundation",
-as the next-session starting point. Its reported completed work must be
-inspected before installation or configuration commands are repeated.
+The initial next-session selection was DOCX Chapter 2. The user's subsequent
+agenda clarified that the intended next milestone is network-wide DNS filtering
+and ad blocking, matching DOCX section 8.3. This supersedes the earlier starting
+point. Compare Unbound blocklists and AdGuard Home before choosing an engine;
+no implementation decision has been made. Retain unfinished foundation checks
+as open tasks, without automatically repeating the installation chapter.
