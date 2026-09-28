@@ -25,6 +25,8 @@ Do not assume undocumented infrastructure exists.
 - Preserve working remote access whenever modifying SSH, firewall, routing,
   VPN, or network configuration.
 - Do not assume a change succeeded until it has been verified.
+- Preserve the shared upstream router and household connectivity. No
+  bridge/passthrough mode or public port forwards are part of the current design.
 
 ## Workflow
 
@@ -36,7 +38,28 @@ For infrastructure changes:
 4. Make one logical change.
 5. Verify it.
 6. Update documentation.
-7. Commit the change to Git.
+7. Summarize the changes and verification, then request explicit approval
+   before committing and before pushing.
+
+## Git Approval
+
+- Codex must ask for explicit user approval before creating a commit or pushing.
+- Editing permission does not authorize a commit or push. Commit approval does
+  not authorize a push; the user may explicitly approve both together.
+- Approval applies only to the stated action and scope. Before push approval,
+  identify the destination branch and commits to be pushed.
+- Never push to `main` on your own. Leave changes uncommitted until approved.
+
+## Reference and Session Continuity
+
+- Use FUTO's "Introduction to a Self Managed Life" as the guiding reference.
+  Adapt it to the documented ThinkCentre/Ubuntu/KVM/OPNsense architecture and
+  shared-router constraints; do not blindly copy dedicated-router instructions.
+- The Part 1 v6 DOCX records prior work and local adaptations. The Markdown
+  documents are the ongoing source of truth, not earlier chat history.
+- Read `docs/04-next-session.md` when resuming work and keep it current.
+- Distinguish reference-reported results from fresh live verification. Do not
+  invent milestone dates or mark instructions as completed work.
 
 ## Documentation
 
