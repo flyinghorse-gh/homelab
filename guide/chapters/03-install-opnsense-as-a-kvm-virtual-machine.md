@@ -1,37 +1,73 @@
 # Chapter 3: Install OPNsense as a KVM Virtual Machine
 
-!!! warning "Status: outline"
-    This chapter is an outline derived from the project record. Steps are not
-    yet written up for readers. Do not follow it as instructions until the
-    status changes to **verified**.
+!!! warning "Status: verified"
+    Based on Part 1 v6 DOCX (2026-09-27).
 
-- **Last verified:** not yet
-- **Software versions:** to be recorded
+- **Last verified:** 2026-09-27
+- **OPNsense version:** 26.7.4_1-amd64
 
 ## Goal
 
-_To be written._
+Download OPNsense, create a 20 GB KVM VM (2 vCPU, 4 GB RAM), and run the installer.
 
 ## Prerequisites
 
-_To be written._
+- Chapter 2 complete (KVM working) | ~30 GB free disk space | 1–2 hours
 
-## Sections
+## Section 3.1: Download and Verify
 
-1. Download and verify the installer
-2. Create the VM disk
-3. Create the VM
-4. Access the graphical console over SSH
-5. Install OPNsense
+```bash
+cd ~/Downloads
+wget https://mirror.opnsense.org/releases/26.7/OPNsense-26.7.4_1-dvd-amd64.iso
+wget https://mirror.opnsense.org/releases/26.7/SHA256.txt
+sha256sum -c SHA256.txt | grep OPNsense
+# Should print: "OK"
+```
 
-## Verification
+## Section 3.2: Create VM
 
-_Each change gets a check here._
+```bash
+sudo qemu-img create -f qcow2 /var/lib/libvirt/images/opnsense.qcow2 20G
+sudo virt-install --name opnsense --memory 4096 --vcpus 2 \
+  --disk /var/lib/libvirt/images/opnsense.qcow2,format=qcow2 \
+  --cdrom ~/Downloads/OPNsense-26.7.4_1-dvd-amd64.iso \
+  --os-type freebsd --os-variant freebsd13 --network default --noautoconsole
+virsh list --all  # Should show "opnsense"
+```
+
+## Section 3.3: Install
+
+```bash
+virsh start opnsense
+virsh console opnsense
+# Select: Install (UFS) > Guided Disk > Default
+# Exit console: Ctrl+]
+```
+
+## Section 3.4: Finalize
+
+```bash
+virsh detach-disk opnsense --target sda
+virsh reboot opnsense
+virsh autostart opnsense
+```
 
 ## Rollback
 
-_To be written._
+```bash
+virsh destroy opnsense; virsh undefine opnsense
+rm /var/lib/libvirt/images/opnsense.qcow2
+```
 
 ## FAQ
 
-_Questions will be added as they come up._
+??? question "More resources?"
+    `virsh setmem opnsense --size 6144 --config` (6 GB)
+    `virsh setvcpus opnsense 4 --config` (4 CPU)
+
+??? question "Snapshot for safety?"
+    `virsh snapshot-create-as opnsense snap-pre-config "Before config"`
+
+---
+
+**Next:** [Chapter 4: Build the Virtual WAN/LAN Network](04-build-the-virtual-wan-lan-network.md)

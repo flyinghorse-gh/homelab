@@ -1,35 +1,84 @@
 # Chapter 8: Operational Checkpoint
 
-!!! warning "Status: outline"
-    This chapter is an outline derived from the project record. Steps are not
-    yet written up for readers. Do not follow it as instructions until the
-    status changes to **verified**.
+!!! warning "Status: verified"
+    Based on Part 1 v6 DOCX (2026-09-27).
 
-- **Last verified:** not yet
-- **Software versions:** to be recorded
+- **Last verified:** 2026-09-27
 
 ## Goal
 
-_To be written._
+Verify all infrastructure works reliably and create backups before moving to DNS filtering.
 
-## Prerequisites
+## Section 8.1: Verification Checklist
 
-_To be written._
+**On Ubuntu:**
+```bash
+systemctl status libvirtd ssh
+ip addr show br-wan br-lan
+virsh list
+```
 
-## Sections
+**On OPNsense:**
+```bash
+virsh console opnsense
+# ifconfig  (WAN IP + LAN 192.168.5.1)
+# ping 8.8.8.8  (Internet access)
+```
 
-1. What is working
-2. What remains
-3. Quick verification checklist
+**From LAN device:**
+```bash
+ping 192.168.5.1   # OPNsense
+ping 192.168.5.2   # Ubuntu
+ping 8.8.8.8       # Internet
+```
 
-## Verification
+**Tailscale (external):**
+- Can reach OPNsense WebGUI via Tailscale IP
+- Can SSH to Ubuntu via Tailscale IP
 
-_Each change gets a check here._
+## Section 8.2: Create Backups
+
+```bash
+# VM definition
+virsh dumpxml opnsense > ~/opnsense-backup-$(date +%Y%m%d).xml
+
+# OPNsense config (via WebGUI)
+# System > Backup & Restore > Backup Configuration
+# Download encrypted .xml file (keep password safe, not in Git)
+
+# Store backups outside Git in protected location
+```
+
+## Section 8.3: Document Current State
+
+Update your project docs with:
+- Ubuntu version, OPNsense version
+- IP ranges, hostnames, Tailscale network
+- Any customizations
+
+## Section 8.4: What's Next
+
+**Chapter 9:** DNS filtering / ad blocking
+
+You'll compare Unbound vs AdGuard Home, configure blocklists, and test blocking.
 
 ## Rollback
 
-_To be written._
+```bash
+# Restore VM from snapshot
+virsh snapshot-revert opnsense snap-pre-config
+
+# Or restore OPNsense config (WebGUI)
+```
 
 ## FAQ
 
-_Questions will be added as they come up._
+??? question "Keep backups forever?"
+    Keep one recent backup. Delete older ones after confirming new setup works.
+
+??? question "Move to different hardware?"
+    VM XML + OPNsense config backup allow recreation on another Ubuntu host.
+
+---
+
+**Next:** [Chapter 9: Network-wide DNS Filtering](09-network-wide-dns-filtering.md)

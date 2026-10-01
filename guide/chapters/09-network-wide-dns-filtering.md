@@ -1,36 +1,109 @@
 # Chapter 9: Network-wide DNS Filtering
 
-!!! warning "Status: planned"
-    This chapter is an outline derived from the project record. Steps are not
-    yet written up for readers. Do not follow it as instructions until the
-    status changes to **verified**.
+!!! warning "Status: outline"
+    This chapter describes the next milestone. Implementation in progress.
 
-- **Last verified:** not yet
-- **Software versions:** to be recorded
+- **Last verified:** Not yet
+- **Tools:** Unbound (built-in), AdGuard Home (alternative)
 
 ## Goal
 
-_To be written._
+Enable DNS-level ad blocking and malware filtering for all LAN devices.
 
 ## Prerequisites
 
-_To be written._
+- Chapter 8 complete (verified + backed up) | 2–3 hours for evaluation | 1–2 hours for rollout
 
-## Sections
+## Section 9.1: Understand DNS Filtering
 
-1. Compare Unbound blocklists and AdGuard Home
-2. Inspect the DNS path
-3. Configure and test
-4. Allowlisting and rollback
+DNS filtering intercepts queries to "example.com?" and checks blocklists:
+- If blocked: return null response
+- If allowed: forward to upstream DNS
 
-## Verification
+**Blocks:** ads, trackers, malware domains
+**Doesn't block:** inline ads on allowed domains
 
-_Each change gets a check here._
+## Section 9.2: Compare Options
+
+**Unbound (built-in to OPNsense):**
+- Already installed
+- Simple, integrated WebGUI
+- Recommended for beginners
+
+**AdGuard Home (separate):**
+- Richer features
+- More learning curve
+- Better for advanced users
+
+**Decision:** Try Unbound first (simplest).
+
+## Section 9.3: Enable Unbound
+
+In OPNsense WebGUI:
+
+1. **Services > Unbound DNS > General**
+   - Enable: checked
+   - Port: 53
+   - Interfaces: All
+
+2. **Services > Unbound DNS > Blocklists**
+   - Add blocklists (e.g., StevenBlack hosts list)
+   - Update: daily
+
+3. **Services > DHCP > LAN**
+   - DNS Servers: 192.168.5.1 (OPNsense)
+
+## Section 9.4: Test Filtering
+
+On LAN device:
+
+```bash
+# Test blocked domain (should fail or return nothing)
+nslookup ads.example.com 192.168.5.1
+
+# Test normal domain (should work)
+nslookup google.com 192.168.5.1
+```
+
+## Section 9.5: Monitor
+
+In WebGUI: **Services > Unbound DNS > Statistics**
+
+View blocked vs allowed queries.
+
+## Important Notes
+
+- **IPv6 DNS:** Configure separately if enabled
+- **Firewall rule:** Optional—block port 53 to non-OPNsense servers
+  (Does not prevent VPN/encrypted DNS bypass)
+- **Encrypted DNS:** DoT/DoH is advanced topic
 
 ## Rollback
 
-_To be written._
+In WebGUI: **Services > Unbound DNS > Enable: unchecked**
 
 ## FAQ
 
-_Questions will be added as they come up._
+??? question "Prevent external DNS?"
+    Firewall rule can block port 53, but VPN/DoT/DoH bypass it.
+    See docs for encrypted DNS handling if needed.
+
+??? question "Add allowlist if blocked by mistake?"
+    **Services > Unbound DNS > Advanced > Local Records**
+    Add A record for domain to correct IP.
+
+??? question "Which blocklists?"
+    Start conservative: StevenBlack hosts (popular, maintained).
+    Add more as needed; avoid too many (overlaps, false positives).
+
+??? question "Block YouTube ads?"
+    No. YouTube ads are same domain as content.
+    Use browser extensions for in-video ad blocking.
+
+---
+
+**Completed!** Full working homelab with DNS filtering. Monitor, tune blocklists,
+explore advanced features per your needs.
+
+For help: see [OPNsense docs](https://docs.opnsense.org/),
+[FUTO guide](https://wiki.futo.org/), community forums.

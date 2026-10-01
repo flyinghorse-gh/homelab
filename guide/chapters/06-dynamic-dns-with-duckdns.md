@@ -1,37 +1,65 @@
 # Chapter 6: Dynamic DNS with DuckDNS
 
-!!! warning "Status: outline"
-    This chapter is an outline derived from the project record. Steps are not
-    yet written up for readers. Do not follow it as instructions until the
-    status changes to **verified**.
+!!! warning "Status: verified"
+    Based on Part 1 v6 DOCX (2026-09-27).
 
-- **Last verified:** not yet
-- **Software versions:** to be recorded
+- **Last verified:** 2026-09-27
+- **Service:** DuckDNS (free)
 
 ## Goal
 
-_To be written._
+Set up Dynamic DNS so your hostname stays updated as your public IP changes.
 
 ## Prerequisites
 
-_To be written._
+- Chapter 5 complete | DuckDNS account + token from https://duckdns.org | 30 min
 
-## Sections
+## Section 6.1: Create DuckDNS Account
 
-1. Purpose
-2. Install Dynamic DNS support
-3. Configure the service
-4. Verify externally
-5. What DDNS does and does not do
+1. Go to https://duckdns.org
+2. Sign in (GitHub/Google/email)
+3. Create domain: e.g., `<myname>.duckdns.org`
+4. Note your token (keep secret; never commit to Git)
 
-## Verification
+## Section 6.2: Install in OPNsense
 
-_Each change gets a check here._
+In WebGUI:
+
+1. **System > Firmware > Plugins**
+2. Install `os-ddclient`
+3. **Services > Dynamic DNS > Settings**
+4. Add entry:
+   - Service: DuckDNS
+   - Hostname: `<myname>`
+   - Token: `<your-token>`
+   - Enable: checked
+
+## Section 6.3: Verify
+
+```bash
+# From outside your network (different ISP or phone hotspot)
+nslookup <myname>.duckdns.org
+ping <myname>.duckdns.org  # Should resolve and work
+```
+
+## Important Notes
+
+- **Updates IPv4 only.** IPv6 is separate.
+- **Does not expose network.** Just keeps hostname updated. Firewall still blocks unwanted inbound.
+- **Keep token secret.** If leaked, regenerate at duckdns.org.
 
 ## Rollback
 
-_To be written._
+In WebGUI: **Services > Dynamic DNS > Delete entry**
 
 ## FAQ
 
-_Questions will be added as they come up._
+??? question "Why DuckDNS?"
+    Free, simple, no ads. Alternatives: FreeDNS, Namecheap, etc.
+
+??? question "Failed update?"
+    Check: **System > Log Files > Dynamic DNS** for errors.
+
+---
+
+**Next:** [Chapter 7: Secure Remote Access with Tailscale](07-secure-remote-access-with-tailscale.md)

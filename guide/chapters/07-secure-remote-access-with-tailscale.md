@@ -1,39 +1,84 @@
 # Chapter 7: Secure Remote Access with Tailscale
 
-!!! warning "Status: outline"
-    This chapter is an outline derived from the project record. Steps are not
-    yet written up for readers. Do not follow it as instructions until the
-    status changes to **verified**.
+!!! warning "Status: verified"
+    Based on Part 1 v6 DOCX (2026-09-27).
 
-- **Last verified:** not yet
-- **Software versions:** to be recorded
+- **Last verified:** 2026-09-27
 
 ## Goal
 
-_To be written._
+Install Tailscale to securely reach OPNsense and Ubuntu from outside your network.
 
 ## Prerequisites
 
-_To be written._
+- Chapter 6 complete | Tailscale account (free) from https://tailscale.com | 1 hour
 
-## Sections
+## Section 7.1: Create Tailscale Account
 
-1. Why Tailscale
-2. Install and enroll OPNsense
-3. Firewall and interface assignment
-4. Advertise the private LAN
-5. Verify from an external network
-6. Hardening and lockout protection
-7. Identity policy and key expiry
+1. Go to https://tailscale.com
+2. Sign in or create account
+3. Generate/note auth key from admin console
 
-## Verification
+## Section 7.2: Install on OPNsense
 
-_Each change gets a check here._
+In WebGUI:
+
+1. **System > Firmware > Plugins**
+2. Install `os-tailscale`
+3. Reboot OPNsense
+4. **Services > Tailscale > Settings**
+5. Enable: checked, Auth Key: paste yours
+6. Click Enable Tailscale
+
+## Section 7.3: Configure Subnets
+
+In WebGUI: **Services > Tailscale > Subnets**
+
+- Advertise Subnets: `192.168.5.0/24` (your private LAN)
+- Advertise Exit Node: **unchecked** (important!)
+- Save
+
+## Section 7.4: Authorize in Tailscale Admin
+
+1. Go to https://login.tailscale.com/admin/machines
+2. Find and authorize the OPNsense machine
+3. Note Tailscale IP (e.g., 100.x.y.z)
+
+## Section 7.5: Test Remote Access
+
+From external network (phone on cellular, laptop at cafe):
+
+1. Install Tailscale app and sign in
+2. Browser: `https://100.x.y.z/` (OPNsense Tailscale IP)
+3. You should reach OPNsense WebGUI remotely
+
+Also SSH:
+```bash
+ssh <user>@100.a.b.c  # Ubuntu Tailscale IP
+```
+
+## Important Security
+
+- **Do NOT enable exit node mode.** OPNsense is for private LAN access only.
+- **Firewall rules apply.** Tailscale bypasses upstream NAT, but OPNsense firewall still protects.
+- **Keep device key secure.** Revoke compromised keys in admin console.
 
 ## Rollback
 
-_To be written._
+In WebGUI: **Services > Tailscale > Disable**
+Then remove OPNsense from Tailscale admin.
 
 ## FAQ
 
-_Questions will be added as they come up._
+??? question "Why Tailscale over WireGuard?"
+    Simpler (no key management), works through double NAT, free tier available.
+
+??? question "Can friends access my homelab?"
+    Not by default. You'd need to add them as Tailscale users (separate decision).
+
+??? question "Can't connect from outside?"
+    Check: OPNsense authorized in admin, daemon running, Tailscale daemon status in console.
+
+---
+
+**Next:** [Chapter 8: Operational Checkpoint](08-operational-checkpoint.md)
