@@ -3,7 +3,12 @@
 Last updated: 2026-09-27
 
 Source: [Part 1 v6 reference](reference/ThinkCentre_OPNsense_Self_Managed_Setup_Part_1_v6.docx).
-These are recorded configuration and past test results, not fresh live checks.
+The topology below is recorded configuration and past test results. Fresh
+2026-09-27 Windows DNS observations are in [DNS evaluation](05-dns-filtering.md):
+Ethernet was disconnected, upstream Wi-Fi was active, and the route to the
+private LAN used Tailscale. Explicit DNS queries to `192.168.5.1` succeeded over
+that VPN path. Direct LAN DHCP, current OPNsense settings, and IPv6 DNS still
+need inspection; this is not a fresh verification of the entire topology.
 
 ## Topology and Interfaces
 

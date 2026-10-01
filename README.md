@@ -42,6 +42,8 @@ inspecting the private LAN's actual DNS path. No filtering engine is selected ye
   configuration, verification, and recovery gaps
 - [Next-session handoff](docs/04-next-session.md) — DNS filtering agenda
   and a prompt for a new chat
+- [DNS evaluation and baseline](docs/05-dns-filtering.md) — architecture
+  comparison, fresh observations, and remaining read-only inspection
 - [Part 1 v6 reference](docs/reference/ThinkCentre_OPNsense_Self_Managed_Setup_Part_1_v6.docx)
   — historical setup record and local adaptations of FUTO
 - `history/` — dated work logs

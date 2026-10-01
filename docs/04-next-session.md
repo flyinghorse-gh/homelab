@@ -8,8 +8,8 @@ Continue building the homelab with IDE-based Codex, keeping state and progress
 in this repository so new chats can resume without earlier chat history.
 
 FUTO's [Introduction to a Self Managed Life](https://wiki.futo.org/index.php/Introduction_to_a_Self_Managed_Life:_a_13_hour_%26_28_minute_presentation_by_FUTO_software)
-is the guiding reference (link supplied by the local DOCX; the website was not
-reviewed during this documentation migration). Adapt its steps to the actual
+is the guiding reference (link supplied by the local DOCX; its ad-blocking
+chapter was reviewed during the DNS evaluation). Adapt its steps to the actual
 ThinkCentre/Ubuntu/KVM/OPNsense design and shared upstream router constraints.
 
 The next milestone is **network-wide DNS filtering / ad blocking**, adapting
@@ -36,6 +36,19 @@ selected an engine. No filtering configuration or installation has been done.
    context when needed rather than assuming its contents.
 
 ## DNS Filtering Agenda
+
+Current checkpoint: [comparison and read-only baseline](05-dns-filtering.md)
+completed for the Windows development PC. It uses upstream Wi-Fi; Ethernet is
+disconnected. DNS at `192.168.5.1` answers over Tailscale. The user can open the
+WebGUI and reports OPNsense `26.7.4_1-amd64`, FreeBSD `15.1-RELEASE-p3`, OpenSSL
+`3.5.8`; Unbound enabled, port `53`, interfaces `All`, DNSSEC unchecked. Next
+inspect Query Forwarding, DNS-over-TLS, and blocklist state, then DHCP and
+IPv6 DNS. No direct LAN lease verified and no architecture chosen. Resume
+from these open checks without treating VPN access as physical LAN validation.
+
+The user requests explanations while proceeding: describe each check's purpose,
+define relevant terms, and connect findings to the choices they can make. Keep
+inspection steps small enough to discuss before proceeding.
 
 1. Compare Unbound blocklists and AdGuard Home with the user before installing
    anything. If AdGuard Home is selected, decide placement, resolver chain,

@@ -1,0 +1,43 @@
+site_name: Self-Managed Homelab Guide
+site_description: Build a ThinkCentre + Ubuntu + KVM + OPNsense homelab, chapter by chapter.
+docs_dir: guide
+site_dir: site
+strict: true
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Before you start:
+      - What you need: what-you-need.md
+      - Glossary: glossary.md
+  - Chapters:
+      - "Chapter 1: Architecture and Hardware Baseline": chapters/01-architecture-and-hardware-baseline.md
+      - "Chapter 2: Ubuntu Host and Virtualization Foundation": chapters/02-ubuntu-host-and-virtualization-foundation.md
+      - "Chapter 3: Install OPNsense as a KVM Virtual Machine": chapters/03-install-opnsense-as-a-kvm-virtual-machine.md
+      - "Chapter 4: Build the Virtual WAN/LAN Network": chapters/04-build-the-virtual-wan-lan-network.md
+      - "Chapter 5: Complete OPNsense First-Time Web Configuration": chapters/05-complete-opnsense-first-time-web-configuration.md
+      - "Chapter 6: Dynamic DNS with DuckDNS": chapters/06-dynamic-dns-with-duckdns.md
+      - "Chapter 7: Secure Remote Access with Tailscale": chapters/07-secure-remote-access-with-tailscale.md
+      - "Chapter 8: Operational Checkpoint": chapters/08-operational-checkpoint.md
+      - "Chapter 9: Network-wide DNS Filtering": chapters/09-network-wide-dns-filtering.md

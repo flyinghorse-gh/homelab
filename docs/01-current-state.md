@@ -6,7 +6,8 @@ This document incorporates the completed work recorded in the
 [Part 1 v6 reference](reference/ThinkCentre_OPNsense_Self_Managed_Setup_Part_1_v6.docx),
 especially its checkpoint and Chapters 7–8. Infrastructure results below are
 reported by that document, not independently live-verified on 2026-09-27.
-Exact milestone dates are not supplied by the reference.
+Exact milestone dates are not supplied by the reference. Fresh observations
+from the DNS evaluation are explicitly identified below.
 
 FUTO's "Introduction to a Self Managed Life" is the guiding reference, adapted
 to this ThinkCentre setup. Markdown is the ongoing project record; the DOCX is
@@ -21,8 +22,9 @@ historical evidence containing both completed work and pending instructions.
   at `/var/lib/libvirt/images/opnsense.qcow2`; current allocation needs inspection.
 - Exact ThinkCentre model, hostname, Ubuntu version, CPU model, total RAM,
   physical storage inventory, and final host disk layout remain undocumented.
-- The reference used an OPNsense 26.7 installer and later a maintenance update;
-  the current installed patch release is unknown.
+- User-reported WebGUI versions on 2026-09-27: OPNsense `26.7.4_1-amd64`,
+  FreeBSD `15.1-RELEASE-p3`, OpenSSL `3.5.8`. These were not independently
+  retrieved from the VM by the agent.
 - Sleep/suspend masking is described in the reference. Current service state,
   reboot recovery, and BIOS restore-on-AC-power-loss still need verification.
 
@@ -134,6 +136,16 @@ The protected backup location, restore procedure, and restore test are not yet
 documented. Do not put credentials or sensitive backup contents into Git.
 
 ## Next Session
+
+### DNS evaluation checkpoint — 2026-09-27
+
+Compared Unbound blocklists and AdGuard Home; no architecture selected and no
+infrastructure changed. Fresh Windows checks found upstream Wi-Fi DNS and a
+disconnected Ethernet adapter. Queries to `192.168.5.1` succeed over Tailscale;
+this does not establish direct LAN DHCP/DNS behavior. The user reports WebGUI
+access works and reports Unbound enabled on port `53`, interfaces `All`, DNSSEC
+unchecked. Forwarding, blocklist state, DHCP options, and LAN IPv6 remain
+uninspected. See [DNS evaluation and baseline](05-dns-filtering.md).
 
 Continue with network-wide DNS filtering / ad blocking, using FUTO as the
 guiding reference and DOCX section 8.3 as the recorded next milestone. The

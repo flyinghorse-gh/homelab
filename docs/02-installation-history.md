@@ -102,3 +102,13 @@ or configured as part of this work. See [the current handoff](04-next-session.md
 Documentation migration commit `ebb717c` was created with user approval; the
 user reported pushing it themselves. The user subsequently authorized a
 separate commit and push of the agenda corrections. No infrastructure was changed.
+
+## 2026-09-27 — DNS Architecture Evaluation and Initial Inspection
+
+Reviewed FUTO's ad-blocking chapter and official product documentation; compared
+Unbound blocklists and AdGuard Home. No selection or installation was made.
+Windows checks found upstream Wi-Fi, disconnected Ethernet, and a Tailscale
+route to the private LAN. Default DNS and explicit OPNsense DNS queries worked
+outside the sandbox. The user reported working WebGUI access. Actual LAN DHCP,
+OPNsense resolver settings, and IPv6 DNS remain pending. See
+[the evaluation log](../history/2026-09-27-dns-evaluation.md).
