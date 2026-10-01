@@ -1,12 +1,15 @@
 # Homelab
 
-This repository is the source of truth for my personal homelab.
+This repository is the source of truth for my personal homelab — infrastructure, documentation, and a shareable guide.
+
+**📖 [Read the guide online →](https://flyinghorse-gh.github.io/homelab/)**
 
 ## Goals
 
 - Build a secure, reliable self-hosted environment.
 - Keep infrastructure changes documented and reproducible.
-- Make the project usable from Windows, Linux, VS Code, Codex, and OpenCode.
+- Share a chapter-by-chapter setup guide so friends can build their own homelabs.
+- Make the project usable from Windows, Linux, VS Code, Claude Code, and IDE extensions.
 - Preserve enough context that a new person or AI agent can understand the environment.
 
 ## Start Here
@@ -47,6 +50,21 @@ inspecting the private LAN's actual DNS path. No filtering engine is selected ye
 - [Part 1 v6 reference](docs/reference/ThinkCentre_OPNsense_Self_Managed_Setup_Part_1_v6.docx)
   — historical setup record and local adaptations of FUTO
 - `history/` — dated work logs
+
+## Guide and CI/CD
+
+**The shareable guide** lives in `guide/` and is published to GitHub Pages automatically.
+
+**CI/CD pipeline:**
+- Triggered on every push to `main` (if `guide/`, `mkdocs.yml`, or `scripts/docs/` changed)
+- Runs privacy check (fails if real IPs, MACs, tokens, hostnames found)
+- Builds MkDocs site with strict mode
+- Deploys to GitHub Pages automatically
+- Creates/updates `gh-pages` branch
+
+**Site rebuilds automatically** after every commit. No manual steps needed.
+
+**Status:** ✅ [View workflow runs](https://github.com/flyinghorse-gh/homelab/actions)
 
 ## Important
 
