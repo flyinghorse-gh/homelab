@@ -1,12 +1,10 @@
 # Chapter 3: Install OPNsense as a KVM Virtual Machine
 
-!!! warning "Status: nearly verified"
-    The finished virtual machine below was checked on the author's server with
-    `virsh dumpxml` and `virsh dominfo`. One step, autostart (3.5), is still
-    being confirmed. Treat that step as required for you, even though the
-    author's own copy is being corrected.
+!!! success "Status: verified"
+    The finished virtual machine below, including autostart, was checked on the
+    author's server with `virsh dumpxml` and `virsh dominfo`.
 
-- **Last verified:** 2026-09-30, VM definition inspected on the author's build
+- **Last verified:** 2026-10-01, VM definition and autostart checked on the author's build
 - **OPNsense version:** 26.7 (the author's install reports 26.7.4_1)
 - **Time required:** 30–45 minutes
 

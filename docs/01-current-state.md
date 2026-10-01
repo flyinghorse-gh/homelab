@@ -36,8 +36,9 @@ Output pasted by the user from the Ubuntu host (not run by the agent):
   `pc-i440fx-resolute`). VM `opnsense`: running, 2 vCPUs, 4 GiB, virtio qcow2
   `vda`, two virtio NICs (`br-wan`, `br-lan`), empty CD-ROM (ISO ejected), VNC
   on 127.0.0.1 only. The temporary default NIC is gone. `virbr0` still exists.
-- **`virsh dominfo` reports Autostart: disable.** This contradicts the earlier
-  "autostart configured" note. Fix: `virsh autostart opnsense`, then re-check.
+- `virsh dominfo` reported Autostart: disable, contradicting the earlier note.
+  Fixed on 2026-10-01 with `virsh autostart opnsense`; user-reported output
+  now shows `Autostart: enable`. A host-reboot test is still outstanding.
 - Bridges are persistent NetworkManager profiles: `br-wan` (no host IP) with
   `br-wan-port`, `br-lan` 192.168.5.2/24 never-default with `br-lan-usb`.
   The USB Ethernet adapter currently shows NO-CARRIER (no cable).
