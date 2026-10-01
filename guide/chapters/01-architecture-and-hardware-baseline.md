@@ -282,7 +282,7 @@ No infrastructure changes in this chapter. Skip if not relevant.
 
     Any fanless or low-power x86-64 mini PC with two Ethernet ports:
     
-    - **Author's build**: a Lenovo ThinkCentre mini PC with an AMD CPU
+    - **Author's build**: a Lenovo ThinkCentre M715q mini PC (AMD)
     - **Also good**: ASUS NUC (11th gen or later, with i5/i7; some models have only one
       Ethernet), HP EliteDesk G7/G8, Zotac ZBOX (some models), custom Intel mini-ITX builds
     - **Avoid**: Fanless Atoms, ARM boards, cloud VMs with virtualization disabled

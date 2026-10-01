@@ -28,6 +28,23 @@ historical evidence containing both completed work and pending instructions.
 - Sleep/suspend masking is described in the reference. Current service state,
   reboot recovery, and BIOS restore-on-AC-power-loss still need verification.
 
+## Live inspection — 2026-09-30
+
+Output pasted by the user from the Ubuntu host (not run by the agent):
+
+- Model: ThinkCentre M715q. Ubuntu with NetworkManager (QEMU machine type
+  `pc-i440fx-resolute`). VM `opnsense`: running, 2 vCPUs, 4 GiB, virtio qcow2
+  `vda`, two virtio NICs (`br-wan`, `br-lan`), empty CD-ROM (ISO ejected), VNC
+  on 127.0.0.1 only. The temporary default NIC is gone. `virbr0` still exists.
+- **`virsh dominfo` reports Autostart: disable.** This contradicts the earlier
+  "autostart configured" note. Fix: `virsh autostart opnsense`, then re-check.
+- Bridges are persistent NetworkManager profiles: `br-wan` (no host IP) with
+  `br-wan-port`, `br-lan` 192.168.5.2/24 never-default with `br-lan-usb`.
+  The USB Ethernet adapter currently shows NO-CARRIER (no cable).
+- Ubuntu's current management path is the USB Wi-Fi adapter on the upstream
+  network. Its Wi-Fi PSK is stored in plaintext in a root-only netplan file.
+- ISO `OPNsense-26.7-dvd-amd64.iso` (2.0G) remains in the images directory.
+
 ## Disk / Operating System
 
 Ubuntu was installed after transitioning the machine away from its previous

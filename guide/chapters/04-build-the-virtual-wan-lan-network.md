@@ -1,305 +1,258 @@
 # Chapter 4: Build the Virtual WAN/LAN Network
 
-!!! warning "Status: working design, commands being re-checked"
-    The author built this and it works. The exact commands below are being
-    re-run on the server one by one before this chapter is marked verified.
+!!! success "Status: verified"
+    The finished result below (bridges, addresses, VM network cards) was
+    checked on the author's server on 2026-09-30. The commands create the same
+    profiles you will see in the expected output.
 
-- **Last verified:** design confirmed 2026-09-27; command syntax pending re-run
+- **Last verified:** 2026-09-30, on the author's build (Ubuntu with NetworkManager)
 - **Time required:** 30–45 minutes
 
 ## Goal
 
-Create two Linux bridges on Ubuntu to connect OPNsense's virtual network interfaces to your physical Ethernet adapters: one for WAN (upstream Internet) and one for LAN (private network).
+Create two Linux bridges on the Ubuntu host and plug OPNsense's two virtual
+network cards into them:
+
+- **br-wan** links OPNsense's WAN card to the physical port facing your home router.
+- **br-lan** links OPNsense's LAN card to a second physical port for your private network,
+  and gives the Ubuntu host its management address on that network.
 
 ## Prerequisites
 
-- Chapter 3 complete (OPNsense VM booting)
-- Two physical network adapters (one built-in Ethernet, one USB or second built-in)
-- 30–45 minutes
-- Understanding from Chapter 1 of why two networks are needed
+- Chapter 3 complete (OPNsense VM installed)
+- Two physical network adapters: one built-in Ethernet port and one more
+  (a second port or a USB Ethernet adapter)
+- **A way into the host that does not depend on the WAN port.** Putting the WAN
+  port into a bridge removes its IP address from the host, which cuts any SSH
+  session running over it. The author used a USB Wi-Fi adapter on the home
+  network as the fallback. A monitor and keyboard on the host also work.
 
-## Background: What Are Bridges?
+## Background: What Is a Bridge?
 
-A Linux **bridge** is a virtual network switch. It forwards network packets between:
-- Physical Ethernet ports (your NICs)
-- Virtual machine network interfaces
+A Linux **bridge** is a virtual network switch inside the host. It connects
+physical ports and virtual machine network cards so that they behave as if
+they were plugged into the same switch.
 
-**br-wan:** Connects OPNsense's WAN (virtual) interface to your upstream router's physical port
-**br-lan:** Connects OPNsense's LAN (virtual) interface to your private devices' physical port
-
-Without bridges, the VMs couldn't send/receive data from physical networks.
-
----
+Why two? OPNsense needs a WAN side and a LAN side. The host's WAN port must not
+give the host an Internet address, otherwise the host would bypass the firewall.
 
 ## Section 4.1: Identify Your Network Adapters
 
-Find the names of your two Ethernet adapters.
-
-### List All Adapters
+On the **Ubuntu host**:
 
 ```bash
-ip link show
+ip -br link
 ```
 
-**Look for:**
-- **Ethernet adapters:** Named like `enp1s0f0`, `enp1s0f1`, `enx<USB_MAC>`
-- **Wi-Fi adapters:** Named like `wlx<USB_MAC>` (avoid for bridges)
-- Skip `lo` (loopback)
-
-### Example Output
+Illustrative output (your names differ; MACs hidden):
 
 ```
-2: enp1s0f0: <BROADCAST,MULTICAST,UP,LOWER_UP>
-3: enp1s0f1: <BROADCAST,MULTICAST>
-4: enx<USB_MAC>: <BROADCAST,MULTICAST>
-5: wlx<USB_MAC>: <BROADCAST,MULTICAST>
+lo               UNKNOWN   00:00:00:00:00:00
+enp1s0f0         UP        <MAC>      <- built-in Ethernet  (WAN)
+wlp2s0           DOWN      <MAC>      <- built-in Wi-Fi
+enx<USB_MAC>     DOWN      <MAC>      <- USB Ethernet       (LAN)
+wlx<USB_MAC>     UP        <MAC>      <- USB Wi-Fi          (fallback access)
 ```
 
-### Assign Roles
+Names starting `enx` and `wlx` contain the adapter's MAC address, so treat
+them as private and never paste them online.
 
-**WAN adapter** (currently connected to home router):
-- Check which has internet: `ip addr show enp1s0f0` (shows IP = connected)
-- Example: `enp1s0f0`
+Pick your roles and write them down:
 
-**LAN adapter** (for private network, can be unused now):
-- USB Ethernet or second built-in
-- Example: `enx<USB_MAC>`
-
-**Write down your names:**
 ```
-WAN:  <WAN_NIC>
-LAN:  <LAN_NIC>
+WAN_NIC = the built-in Ethernet port that plugs into your home router
+LAN_NIC = the second Ethernet adapter for your private network
 ```
+
+A `DOWN` or `NO-CARRIER` status on the LAN adapter just means no cable is
+plugged in yet. That is fine for now.
 
 ???+ success "Verified: 4.1"
-    - [ ] Listed adapters: `ip link show` shows at least 2 Ethernet
-    - [ ] Identified WAN (connected to home router)
-    - [ ] Identified LAN (USB or second port)
+    - [ ] You can name the WAN adapter and the LAN adapter
+    - [ ] You have a way into the host that is not the WAN adapter
 
----
+## Section 4.2: Create br-wan
 
-## Section 4.2: Create br-wan Bridge
-
-Create a bridge for the WAN side and attach your upstream Ethernet adapter.
-
-### Create and Enable Bridge
+Ubuntu Desktop and many Ubuntu installs manage networking with NetworkManager.
+Bridges made with `nmcli` survive reboots. On the **Ubuntu host**:
 
 ```bash
-sudo ip link add br-wan type bridge
-sudo ip link set br-wan up
+nmcli con show                                  # note the current profile names
 ```
 
-### Add WAN Adapter to Bridge
-
-Replace `<WAN_NIC>` with your actual name (e.g., `enp1s0f0`):
+Create the bridge with no IP address for the host, then add the WAN adapter:
 
 ```bash
-sudo ip link set <WAN_NIC> master br-wan
-sudo ip link set <WAN_NIC> up
+sudo nmcli con add type bridge ifname br-wan con-name br-wan \
+  ipv4.method disabled ipv6.method disabled
+
+sudo nmcli con add type ethernet ifname <WAN_NIC> con-name br-wan-port \
+  master br-wan slave-type bridge
 ```
 
-### Verify
+If you were connected over the WAN port, your SSH session ends here. Reconnect
+through your fallback path. To bring the bridge up:
 
 ```bash
-ip link show br-wan
+sudo nmcli con up br-wan
+sudo nmcli con up br-wan-port
 ```
 
-Should show `state UP` and your adapter as `master br-wan`.
+The host intentionally has **no IP address** on `br-wan`. OPNsense itself will
+request one from your home router.
 
 ???+ success "Verified: 4.2"
-    - [ ] Bridge created: `ip link show | grep br-wan`
-    - [ ] Adapter added: `ip link show | grep <WAN_NIC>` shows `master br-wan`
-    - [ ] State is UP
+    - [ ] `ip -br addr show br-wan` shows state `UP` with no IP address
+    - [ ] `nmcli con show` lists `br-wan` (bridge) and `br-wan-port` (ethernet)
 
----
+## Section 4.3: Create br-lan
 
-## Section 4.3: Create br-lan Bridge
-
-Create a bridge for your private LAN and assign Ubuntu's management IP.
-
-### Create and Enable Bridge
+Create the bridge with the host's management address, then add the LAN adapter:
 
 ```bash
-sudo ip link add br-lan type bridge
-sudo ip link set br-lan up
+sudo nmcli con add type bridge ifname br-lan con-name br-lan \
+  ipv4.method manual ipv4.addresses 192.168.5.2/24 \
+  ipv4.never-default yes ipv6.method disabled
+
+sudo nmcli con add type ethernet ifname <LAN_NIC> con-name br-lan-usb \
+  master br-lan slave-type bridge
+
+sudo nmcli con up br-lan
 ```
 
-### Add LAN Adapter to Bridge
+Why `ipv4.never-default yes`? It tells the host never to use this network as
+its route to the Internet. The host keeps using its normal connection for that.
 
-Replace `<LAN_NIC>` with your actual name (e.g., `enx<USB_MAC>`):
+Check:
 
 ```bash
-sudo ip link set <LAN_NIC> master br-lan
-sudo ip link set <LAN_NIC> up
+ip -br addr show br-lan
+nmcli -f connection.id,ipv4.never-default,ipv4.addresses con show br-lan
 ```
 
-### Assign Ubuntu Management IP
+Expected:
 
-```bash
-sudo ip addr add 192.168.5.2/24 dev br-lan
 ```
-
-### Verify
-
-```bash
-ip addr show br-lan
+br-lan           UP             192.168.5.2/24
+connection.id:                          br-lan
+ipv4.never-default:                     yes
+ipv4.addresses:                         192.168.5.2/24
 ```
-
-Should show:
-- state UP
-- `inet 192.168.5.2/24`
 
 ???+ success "Verified: 4.3"
-    - [ ] Bridge created and UP
-    - [ ] Adapter added as master
-    - [ ] Ubuntu IP is 192.168.5.2/24
+    - [ ] `br-lan` is `UP` with `192.168.5.2/24`
+    - [ ] `ipv4.never-default` is `yes`
 
----
+## Section 4.4: Attach the Bridges to the OPNsense VM
 
-## Section 4.4: Attach Bridges to OPNsense VM
-
-Tell OPNsense to use these bridges.
-
-### Attach WAN Bridge
+Attach WAN first, then LAN. The order matters because OPNsense names its
+cards in the order it finds them (`vtnet0` is the first, `vtnet1` the second).
 
 ```bash
-sudo virsh attach-interface opnsense \
-  --type bridge --source br-wan \
-  --model virtio --persistent
-```
-
-### Attach LAN Bridge
-
-```bash
-sudo virsh attach-interface opnsense \
-  --type bridge --source br-lan \
-  --model virtio --persistent
-```
-
-### Verify Attached
-
-```bash
+virsh attach-interface opnsense --type bridge --source br-wan --model virtio --persistent
+virsh attach-interface opnsense --type bridge --source br-lan --model virtio --persistent
 virsh domiflist opnsense
 ```
 
-Should show:
-- One interface connected to `br-wan`
-- One interface connected to `br-lan`
+Expected (MACs differ):
 
-**Note the MAC addresses** of these two interfaces; you'll use them to identify WAN vs LAN in OPNsense.
+```
+ Interface   Type     Source    Model    MAC
+-----------------------------------------------------------
+ vnet0       bridge   br-wan    virtio   52:54:00:xx:xx:xx
+ vnet1       bridge   br-lan    virtio   52:54:00:xx:xx:xx
+```
 
 ???+ success "Verified: 4.4"
-    - [ ] Interfaces attached: `virsh domiflist opnsense` shows both bridges
-    - [ ] Noted MAC addresses for WAN and LAN interfaces
+    - [ ] `virsh domiflist opnsense` lists exactly two cards: br-wan then br-lan
+    - [ ] No leftover `default` network card is listed
 
----
+??? question "I see a third card on the `default` network"
+    Remove it so nothing bypasses the firewall:
+    `virsh detach-interface opnsense network --mac <that-MAC> --persistent`
 
-## Section 4.5: Configure OPNsense to Use Bridges
+## Section 4.5: Tell OPNsense Which Card Is Which
 
-Boot OPNsense and configure which interface is WAN and which is LAN.
-
-### Reboot to Detect Interfaces
+Restart the VM and open its console (VNC through an SSH tunnel as in
+Chapter 3, or `virsh console opnsense` if the serial console is enabled):
 
 ```bash
 virsh reboot opnsense
-sleep 5
 ```
 
-### Access Console
+At the OPNsense menu choose **1) Assign interfaces**:
 
-```bash
-virsh console opnsense
-```
+- WAN = `vtnet0` (the first card, on `br-wan`)
+- LAN = `vtnet1` (the second card, on `br-lan`)
 
-### Configure Interfaces
+Then choose **2) Set interface IP address**:
 
-At the prompt, select the option to **assign interfaces** or **configure network** (usually option 1–2).
+- **WAN:** DHCP (your home router provides the address)
+- **LAN:** `192.168.5.1`, subnet 24, no upstream gateway, enable the DHCP server
+  with the range `192.168.5.100` to `192.168.5.200`
 
-OPNsense will show detected network interfaces with MAC addresses. Match them:
-- **WAN interface:** The MAC from br-wan (you noted this in 4.4)
-- **LAN interface:** The MAC from br-lan
-
-Assign accordingly:
-- **WAN:** Set to DHCP (gets IP from your upstream router)
-- **LAN:** Set to static `192.168.5.1/24`
-
-Enable DHCP on LAN for client pool: `192.168.5.100–192.168.5.200`.
-
-Save and exit. OPNsense reboots.
-
-### Verify Boot
-
-After reboot, you should see login prompt with no errors.
-
-Exit console: **Ctrl+]**
+If unsure which card is which, compare the MACs in the OPNsense menu with the
+`virsh domiflist` output.
 
 ???+ success "Verified: 4.5"
-    - [ ] Interfaces configured in OPNsense
-    - [ ] WAN is DHCP
-    - [ ] LAN is 192.168.5.1/24 with DHCP enabled
+    - [ ] OPNsense console shows WAN with an address from your home router
+    - [ ] OPNsense console shows LAN `192.168.5.1/24`
 
----
+## Section 4.6: Test
 
-## Section 4.6: Test Connectivity
-
-### From Ubuntu
+From the **Ubuntu host**:
 
 ```bash
-ping 192.168.5.1
+ping -c 3 192.168.5.1       # OPNsense LAN
 ```
 
-Should succeed. If it fails, check that OPNsense LAN is set to 192.168.5.1/24.
-
-### From LAN Device (Optional)
-
-Plug a computer into the LAN adapter:
-```bash
-ping 192.168.5.1   # OPNsense
-ping 192.168.5.2   # Ubuntu
-ping 8.8.8.8       # Internet
-```
-
-All should work.
+From a **computer plugged into the LAN adapter** (optional but recommended):
+it should receive an address from `192.168.5.100`–`192.168.5.200` and be able
+to ping `192.168.5.1` and `192.168.5.2`.
 
 ???+ success "Verified: 4.6"
-    - [ ] Ubuntu → OPNsense ping works
-    - [ ] (Optional) LAN device gets DHCP + ping succeeds
+    - [ ] Ubuntu pings `192.168.5.1`
+    - [ ] A LAN computer gets a DHCP address and pings both `.1` and `.2`
 
----
+## Reboot Check
+
+Bridges made with `nmcli` are permanent. Prove it: `sudo reboot`, wait a
+minute, reconnect, and confirm `ip -br addr show br-lan` still shows
+`192.168.5.2/24` and `virsh list --all` shows OPNsense running.
 
 ## Rollback
 
+On the **Ubuntu host**:
+
 ```bash
-virsh detach-interface opnsense --type bridge --source br-wan --persistent
-virsh detach-interface opnsense --type bridge --source br-lan --persistent
+virsh detach-interface opnsense bridge --mac <WAN-MAC> --persistent
+virsh detach-interface opnsense bridge --mac <LAN-MAC> --persistent
 
-sudo ip addr del 192.168.5.2/24 dev br-lan
-sudo ip link set br-lan down && sudo ip link del br-lan
-sudo ip link set br-wan down && sudo ip link del br-wan
+sudo nmcli con delete br-lan-usb br-lan br-wan-port br-wan
+nmcli con show                       # find your original Ethernet profile
+sudo nmcli con up "<original-profile-name>"
 ```
-
----
 
 ## FAQ
 
-??? question "Do I need two physical adapters?"
-    Yes, for this guide. Alternatives:
-    - Use VLAN tagging on one adapter (advanced)
-    - USB Ethernet adapter (~$15, recommended if you only have one built-in)
+??? question "Do I really need two physical adapters?"
+    For this design, yes: one faces your home router, one faces your private
+    network. A USB Ethernet adapter (about $15) is the common choice.
 
-??? question "My Wi-Fi adapter only?"
-    Not ideal for WAN/LAN paths; too unreliable. Use Ethernet if possible.
+??? question "Can I use Wi-Fi for the WAN or LAN side?"
+    Wi-Fi cannot be bridged the same way. Use Ethernet for both. A Wi-Fi
+    adapter is handy as an emergency way into the host, as the author does.
 
-??? question "What if I don't have a spare LAN device to test?"
-    The key test is: `ping 192.168.5.1` from Ubuntu. If that works, bridges are good.
-    Full LAN testing comes in Chapter 5.
-
-??? question "Should I make bridges permanent?"
-    For now, they're temporary (recreated at reboot). A later chapter will cover making them
-    permanent in `/etc/network/interfaces` or Netplan.
+??? question "What is the `virbr0` interface?"
+    libvirt's built-in NAT network. This guide does not use it. Leaving it
+    alone is harmless.
 
 ??? question "Can I use a different LAN subnet?"
-    Yes. Use `192.168.100.0/24` or any private range. Just be consistent everywhere.
+    Yes, any private range, as long as you use it consistently.
+
+??? question "My SSH session died in 4.2"
+    Expected when the WAN port was your connection. Reconnect through the
+    fallback adapter, or use a keyboard and monitor.
 
 ---
 
