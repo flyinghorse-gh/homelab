@@ -1,6 +1,6 @@
 # Chapter 1: Architecture and Hardware Baseline
 
-!!! warning "Status: draft"
+!!! success "Status: verified"
     This chapter describes the design and initial inventory. It does not require
     configuration changes. Use it to understand what you need and verify your
     hardware can run KVM.

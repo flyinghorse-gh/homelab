@@ -1,6 +1,6 @@
 # Self-Managed Homelab Guide
 
-Build your own home server firewall and DNS filtering in **9 chapters**. This guide
+Build your own home server firewall and DNS filtering in **8 chapters**. This guide
 takes you from hardware selection through a fully operational homelab with secure
 remote access and ad blocking.
 

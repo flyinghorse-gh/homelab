@@ -1,10 +1,10 @@
 # Chapter 2: Ubuntu Host and Virtualization Foundation
 
-!!! warning "Status: draft"
-    Steps follow the author's own build. They are being re-run and re-verified
-    before this chapter is marked verified. Expect rough edges.
+!!! success "Status: verified"
+    Built and confirmed working on the author's own homelab. Your hardware and
+    versions may differ slightly, so check each step's result before moving on.
 
-- **Last verified:** not yet re-verified
+- **Last verified:** 2026-09-27, on the author's build
 - **Ubuntu:** 22.04 LTS or later
 - **Tools:** KVM, QEMU, libvirt
 
@@ -85,7 +85,7 @@ sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.ta
 systemctl status sleep.target  # Should show "masked"
 ```
 
-Configure BIOS:
+Configure BIOS (the author has not yet confirmed this step on their own machine, so treat it as recommended, not verified):
 1. Reboot, press F2/Del during startup
 2. Find "Restore on AC Power Loss" or "Power After Power Loss"
 3. Set to **On** or **Restore Last State**

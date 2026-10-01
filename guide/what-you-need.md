@@ -40,7 +40,7 @@ Checklist of hardware, accounts, and time before you begin.
 
 - **Reading time:** 30 min per chapter on average
 - **Hands-on time:** 1–2 hours per chapter for configuration and verification
-- **Total (all 9 chapters):** ~12–18 hours spread over days/weeks
+- **Total (all 8 chapters):** ~12–18 hours spread over days/weeks
 - **No rush:** you can stop and resume; each chapter is self-contained
 
 ## Linux Comfort

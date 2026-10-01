@@ -5,6 +5,7 @@
 
 secrets/
 credentials/
+.mcp.json
 
 # SSH / certificates
 *.pem

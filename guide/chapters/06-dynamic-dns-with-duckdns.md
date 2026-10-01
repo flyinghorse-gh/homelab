@@ -1,10 +1,10 @@
 # Chapter 6: Dynamic DNS with DuckDNS
 
-!!! warning "Status: draft"
-    Steps follow the author's own build. They are being re-run and re-verified
-    before this chapter is marked verified. Expect rough edges.
+!!! success "Status: verified"
+    Built and confirmed working on the author's own homelab. Your hardware and
+    versions may differ slightly, so check each step's result before moving on.
 
-- **Last verified:** not yet re-verified
+- **Last verified:** 2026-09-27, on the author's build
 - **Service:** DuckDNS (free)
 
 ## Goal

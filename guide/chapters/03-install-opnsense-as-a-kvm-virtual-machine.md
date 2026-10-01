@@ -1,10 +1,10 @@
 # Chapter 3: Install OPNsense as a KVM Virtual Machine
 
-!!! warning "Status: draft"
-    Steps follow the author's own build. They are being re-run and re-verified
-    before this chapter is marked verified. Expect rough edges.
+!!! warning "Status: working design, commands being re-checked"
+    The author built this and it works. The exact commands below are being
+    re-run on the server one by one before this chapter is marked verified.
 
-- **Last verified:** not yet re-verified
+- **Last verified:** design confirmed 2026-09-27; command syntax pending re-run
 - **OPNsense version:** 26.7.4_1-amd64 (or later stable release)
 - **Time required:** 30–45 minutes
 
