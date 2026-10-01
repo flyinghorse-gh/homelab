@@ -1,9 +1,10 @@
 # Chapter 7: Secure Remote Access with Tailscale
 
-!!! warning "Status: verified"
-    Based on Part 1 v6 DOCX (2026-09-27).
+!!! warning "Status: draft"
+    Steps follow the author's own build. They are being re-run and re-verified
+    before this chapter is marked verified. Expect rough edges.
 
-- **Last verified:** 2026-09-27
+- **Last verified:** not yet re-verified
 
 ## Goal
 
@@ -81,4 +82,4 @@ Then remove OPNsense from Tailscale admin.
 
 ---
 
-**Next:** [Chapter 8: Operational Checkpoint](08-operational-checkpoint.md)
+**Next:** [Chapter 8: Network-wide DNS Filtering](08-network-wide-dns-filtering.md)

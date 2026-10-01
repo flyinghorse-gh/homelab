@@ -1,10 +1,10 @@
 # Chapter 2: Ubuntu Host and Virtualization Foundation
 
-!!! warning "Status: verified"
-    Based on Part 1 v6 DOCX historical record (2026-09-27). Infrastructure
-    tested and working.
+!!! warning "Status: draft"
+    Steps follow the author's own build. They are being re-run and re-verified
+    before this chapter is marked verified. Expect rough edges.
 
-- **Last verified:** 2026-09-27
+- **Last verified:** not yet re-verified
 - **Ubuntu:** 22.04 LTS or later
 - **Tools:** KVM, QEMU, libvirt
 

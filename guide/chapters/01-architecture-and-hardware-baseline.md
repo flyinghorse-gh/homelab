@@ -114,65 +114,33 @@ Record the output in a text file. You need:
 - Disk layout (NVME, SSD, HDD, and which device is which)
 - All network adapter names and MAC addresses (they'll look like `enp1s0f0`, `enx...`, `wlx...`)
 
-??? example "Worked example: Lenovo ThinkCentre M90n IoT"
+??? example "Illustrative inventory output (values are examples only)"
 
-    This guide was developed and tested on a Lenovo ThinkCentre M90n IoT, a compact
-    fanless business mini PC. Here's what a typical inventory looks like:
-    
-    **lscpu output (excerpt):**
+    Your output will differ. What matters is the shape of the results.
+
     ```
-    Architecture:                    x86_64
-    CPU op-mode(s):                  32-bit, 64-bit
-    Vendor ID:                       GenuineIntel
-    Model name:                      Intel(R) Core(TM) i7-8565U CPU @ 1.80GHz
-    CPU family:                      6
-    Model:                           142
-    Thread(s) per core:              2
-    Core(s) per socket:              4
-    Socket(s):                       1
-    
-    Flags: ... vmx ... (Intel virtualization support present)
-    ```
-    
-    **Memory:**
-    ```
+    $ lscpu | grep -E "Model name|Flags"
+    Model name:   <your CPU model>
+    Flags:        ... svm ...        # AMD: look for "svm"; Intel: look for "vmx"
+
     $ free -h
-                   total        used        free      shared  buff/cache   available
-    Mem:            15Gi       2.1Gi       3.9Gi       164Mi       9.0Gi       12Gi
-    ```
-    (15 GB total; ~2 GB used by Ubuntu; ~13 GB available for VMs)
-    
-    **Storage:**
-    ```
+                   total        used        free
+    Mem:             15Gi       2.1Gi       3.9Gi
+
     $ lsblk
-    NAME        MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
-    nvme0n1     259:0    0  238G  0 disk
-    ├─nvme0n1p1 259:1    0    1G  0 part /boot/efi
-    ├─nvme0n1p2 259:2    0   20G  0 part /
-    └─nvme0n1p3 259:3    0  217G  0 part /home
-    
-    $ df -h
-    Filesystem     Size  Used Avail Use% Mounted on
-    /dev/nvme0n1p2  20G  4.2G   15G  23% /
-    /dev/nvme0n1p3 217G   50G  157G  25% /home
-    ```
-    (238 GB NVME SSD; 20 GB for OS, 217 GB available for VMs and data)
-    
-    **Network adapters:**
-    ```
+    NAME        SIZE TYPE MOUNTPOINTS
+    nvme0n1     238G disk
+    ├─nvme0n1p1   1G part /boot/efi
+    └─nvme0n1p2 237G part /
+
     $ ip link show
-    1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
-        link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-    2: enp1s0f0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
-        link/ether <ETH_MAC_REDACTED> brd ff:ff:ff:ff:ff:ff
-    3: enp1s0f1: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
-        link/ether <ETH_MAC_REDACTED> brd ff:ff:ff:ff:ff:ff
-    4: enxYYYYYYYYYYYY: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
-        link/ether <USB_MAC_REDACTED> brd ff:ff:ff:ff:ff:ff
-    5: wlxfc221c100f59: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
-        link/ether <WIFI_MAC_REDACTED> brd ff:ff:ff:ff:ff:ff
+    2: enp1s0:  <BROADCAST,MULTICAST,UP,LOWER_UP> ...   # built-in Ethernet
+    3: enx<USB_MAC>: <BROADCAST,MULTICAST> ...          # USB Ethernet adapter
+    4: wlx<USB_MAC>: <BROADCAST,MULTICAST> ...          # USB Wi-Fi adapter
     ```
-    (Built-in Ethernet `enp1s0f0` for WAN, built-in `enp1s0f1` unused, USB Ethernet `enxYYYYYYYYYYYY` for LAN, USB Wi-Fi fallback)
+
+    Adapter names starting with `enx` or `wlx` embed the adapter's MAC address.
+    Treat them like MAC addresses: keep them in your private notes, not in anything you share.
 
 ??? example "Example: Generic x86-64 system"
 
@@ -221,18 +189,6 @@ your CPU supports virtualization. If not, this design won't work on your machine
 
 4. **Save and exit** (usually `Ctrl+S` or `F10`, then confirm).
 
-??? example "ThinkCentre M90n: BIOS walkthrough"
-
-    On the M90n:
-    
-    1. Power on and press `F2` during startup (listen for the startup beep, then press quickly)
-    2. Navigate to **Security** (use arrow keys)
-    3. Look for **Virtualization Technology** or **Intel(R) VT-x** — it should say `[Enabled]`
-    4. If it's `[Disabled]`, select it and press `Enter` to toggle
-    5. Press `F10`, then select **Yes** to save and reboot
-    
-    The machine will reboot automatically. Once Ubuntu is booting, you're done with BIOS
-    for now.
 
 ### Test on Ubuntu
 
@@ -293,7 +249,7 @@ No infrastructure changes in this chapter. Skip if not relevant.
     
     - **Two built-in Ethernet ports** (ideal): one for WAN, one for LAN
     - **One built-in + one USB Ethernet**: the USB can bridge the LAN. This is what the
-      ThinkCentre M90n uses.
+      is a common setup.
     - **One built-in + USB Wi-Fi**: the Wi-Fi can be a fallback for management, but avoid
       it for the main WAN/LAN paths.
     
@@ -326,7 +282,7 @@ No infrastructure changes in this chapter. Skip if not relevant.
 
     Any fanless or low-power x86-64 mini PC with two Ethernet ports:
     
-    - **Tested**: Lenovo ThinkCentre M90n IoT (this guide's worked example)
+    - **Author's build**: a Lenovo ThinkCentre mini PC with an AMD CPU
     - **Also good**: ASUS NUC (11th gen or later, with i5/i7; some models have only one
       Ethernet), HP EliteDesk G7/G8, Zotac ZBOX (some models), custom Intel mini-ITX builds
     - **Avoid**: Fanless Atoms, ARM boards, cloud VMs with virtualization disabled

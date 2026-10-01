@@ -1,4 +1,4 @@
-# Chapter 9: Network-wide DNS Filtering
+# Chapter 8: Network-wide DNS Filtering
 
 !!! warning "Status: outline"
     This chapter describes the next milestone. Implementation in progress.

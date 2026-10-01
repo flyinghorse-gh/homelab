@@ -11,7 +11,7 @@ Checklist of hardware, accounts, and time before you begin.
   - **Two network ports:** either two built-in Ethernet, or one built-in + one USB adapter
   - Quiet/fanless is nice but not required
 
-- **Tested example:** Lenovo ThinkCentre M90n IoT (fanless, 8th-gen Intel i7, ~$400 used)
+- **Author's build:** a Lenovo ThinkCentre mini PC with an AMD CPU
 - **Other good options:** ASUS NUC (11th gen+), HP EliteDesk G7/G8, custom Intel mini-ITX
 
 - **For setup:** Keyboard, mouse, monitor (can be temporary; goes headless after Chapter 2)

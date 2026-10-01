@@ -39,5 +39,4 @@ nav:
       - "Chapter 5: Complete OPNsense First-Time Web Configuration": chapters/05-complete-opnsense-first-time-web-configuration.md
       - "Chapter 6: Dynamic DNS with DuckDNS": chapters/06-dynamic-dns-with-duckdns.md
       - "Chapter 7: Secure Remote Access with Tailscale": chapters/07-secure-remote-access-with-tailscale.md
-      - "Chapter 8: Operational Checkpoint": chapters/08-operational-checkpoint.md
-      - "Chapter 9: Network-wide DNS Filtering": chapters/09-network-wide-dns-filtering.md
+      - "Chapter 8: Network-wide DNS Filtering": chapters/08-network-wide-dns-filtering.md
