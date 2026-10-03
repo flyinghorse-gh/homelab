@@ -1,6 +1,11 @@
 # Current Homelab State
 
-Last updated: 2026-09-27
+Last updated: 2026-10-03
+
+DNS filtering (AdGuard Home) was built and verified between 2026-10-01 and
+2026-10-03 from output the user pasted from the Ubuntu host, the OPNsense
+WebGUI, a Windows PC and the AdGuard dashboard. The agent did not run these
+commands itself. See the section "DNS Filtering" below.
 
 This document incorporates the completed work recorded in the
 [Part 1 v6 reference](reference/ThinkCentre_OPNsense_Self_Managed_Setup_Part_1_v6.docx),
@@ -38,7 +43,8 @@ Output pasted by the user from the Ubuntu host (not run by the agent):
   on 127.0.0.1 only. The temporary default NIC is gone. `virbr0` still exists.
 - `virsh dominfo` reported Autostart: disable, contradicting the earlier note.
   Fixed on 2026-10-01 with `virsh autostart opnsense`; user-reported output
-  now shows `Autostart: enable`. A host-reboot test is still outstanding.
+  now shows `Autostart: enable`. A later host reboot (see DNS Filtering) left
+  the VM running with autostart enabled, as observed on 2026-10-03.
 - Bridges are persistent NetworkManager profiles: `br-wan` (no host IP) with
   `br-wan-port`, `br-lan` 192.168.5.2/24 never-default with `br-lan-usb`.
   The USB Ethernet adapter currently shows NO-CARRIER (no cable).
@@ -153,22 +159,75 @@ storage.
 The protected backup location, restore procedure, and restore test are not yet
 documented. Do not put credentials or sensitive backup contents into Git.
 
+## DNS Filtering
+
+Details, evidence and limits: [DNS filtering](05-dns-filtering.md). Rationale:
+ADR-011 to ADR-013 in [decisions](decisions.md). Dated log:
+[history/2026-10-03-adguard-home-dns-filtering.md](../history/2026-10-03-adguard-home-dns-filtering.md).
+
+Status: working for LAN clients that take DHCP DNS from OPNsense. Verified from
+user-pasted output on 2026-10-01 to 2026-10-03.
+
+- **Engine and placement:** AdGuard Home `v0.107.79`, official binary in
+  `/opt/AdGuardHome` on the Ubuntu host, installed as the `AdGuardHome` systemd
+  service (enabled). Listens on `192.168.5.2` only: DNS `53` (UDP/TCP) and the
+  dashboard `3000`. Nothing is bound to `0.0.0.0`.
+- **Query path:** LAN client → AdGuard Home `192.168.5.2:53` → Unbound
+  `192.168.5.1:53` → recursive resolution. AdGuard's only upstream is
+  `192.168.5.1`; fallback servers are empty. Query Log details showed
+  `DNS server: 192.168.5.1:53`, `NOERROR`.
+- **Unbound:** unchanged stock settings. Query Forwarding holds only the default
+  `home.arpa` → `127.0.0.1:53053` rule (Dnsmasq); "Use System Nameservers"
+  unchecked; DNS-over-TLS table empty; Unbound blocklist disabled. So Unbound
+  resolves recursively over plain DNS. DNSSEC unchecked.
+- **DHCP:** Dnsmasq DNS & DHCP serves the LAN (Dnsmasq DNS on port `53053`).
+  A DHCP option `dns-server [6]` = `192.168.5.2` (LAN, Type Set) was added on
+  2026-10-02 and applied. The test PC then showed DNS `192.168.5.2`.
+  Router advertisements are enabled in Dnsmasq. The PC had IPv4 DNS only, no
+  IPv6 DNS and only a link-local IPv6 address.
+- **Lists:** AdGuard DNS filter (default) plus HaGeZi's Pro Blocklist (about
+  277,000 rules). `doubleclick.net` returns `0.0.0.0`/`::`; `example.com`
+  resolves. An allow (Unblock) and re-block of `doubleclick.net` both worked.
+- **Not changed:** Browsing security and Parental control not enabled. The user
+  was asked to set log rotation and statistics retention to a short period; the
+  saved value was never reported back, so it is unconfirmed.
+- **Admin access:** AdGuard dashboard password was reset by editing
+  `AdGuardHome.yaml` (bcrypt hash). The password is held by the user outside
+  Git. The dashboard is reached through an SSH tunnel from Windows
+  (`ssh -L 3000:192.168.5.2:3000 <user>@192.168.5.2`, browse `localhost:3000`).
+- **Backup:** an encrypted OPNsense configuration backup was taken on
+  2026-10-01 before the changes and checked as not containing readable XML.
+  It is stored outside the repository; its location is not recorded here.
+- **Reboot test:** after a host reboot the `opnsense` VM was `running` with
+  `Autostart: enable` (VM Id 1), AdGuard Home was `active` with listeners on
+  `192.168.5.2`, and a blocked lookup still returned `0.0.0.0`. The check was
+  run at `up 15:56` (about 16 hours after the reboot), so the boot timing is
+  inferred from low process/VM IDs, not watched live.
+
+Known limits and open items:
+
+- A device or app that uses its own DNS server bypasses the filter. On the
+  test PC `Resolve-DnsName doubleclick.net -Server 1.1.1.1` returned real
+  addresses. No port-53 restriction or other enforcement exists.
+- Upstream DNS is plain, not encrypted (no DoT). Resolution is recursive from
+  the OPNsense VM. No anonymity is provided by DNS filtering.
+- Over Tailscale, ports `53` and `3000` to `192.168.5.2` timed out while port
+  `22` worked. With Tailscale disconnected on the PC and traffic on the wired
+  adapter, `53` worked. `docs/03` records an allow-all TAILSCALE interface
+  rule and an all-ports Grant, which does not explain the timeouts. The cause
+  is **unresolved** and not yet inspected.
+- Windows with Tailscale connected sent `192.168.5.x` traffic through the
+  tunnel instead of the wired link, which skewed early LAN tests. Check
+  `Find-NetRoute` first.
+- The test PC's wired lease was `192.168.5.90`, below the recorded
+  `192.168.5.100`–`.200` pool. The DHCP ranges tab was never re-read after it.
+- Remote (Tailscale) clients still use their existing DNS. Tailscale DNS was
+  not changed.
+- Other LAN devices, a second client and the physical switch/AP deployment have
+  not been tested. The household stays on the upstream router.
+
 ## Next Session
 
-### DNS evaluation checkpoint — 2026-09-27
-
-Compared Unbound blocklists and AdGuard Home; no architecture selected and no
-infrastructure changed. Fresh Windows checks found upstream Wi-Fi DNS and a
-disconnected Ethernet adapter. Queries to `192.168.5.1` succeed over Tailscale;
-this does not establish direct LAN DHCP/DNS behavior. The user reports WebGUI
-access works and reports Unbound enabled on port `53`, interfaces `All`, DNSSEC
-unchecked. Forwarding, blocklist state, DHCP options, and LAN IPv6 remain
-uninspected. See [DNS evaluation and baseline](05-dns-filtering.md).
-
-Continue with network-wide DNS filtering / ad blocking, using FUTO as the
-guiding reference and DOCX section 8.3 as the recorded next milestone. The
-user's follow-up agenda supersedes the earlier plan to revisit DOCX Chapter 2.
-Compare Unbound blocklists with AdGuard Home before selecting or installing
-anything. Filtering is not yet documented as enabled. Verify the actual LAN
-client/DHCP/DNS path before changes; full switch/AP deployment remains unconfirmed.
-See [the next-session handoff](04-next-session.md) for the starting checklist.
+See [the next-session handoff](04-next-session.md). The DNS filtering milestone
+is working for one verified LAN client; remaining items are listed above and in
+the handoff.

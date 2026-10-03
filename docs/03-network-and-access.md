@@ -1,6 +1,14 @@
 # Network and Remote Access
 
-Last updated: 2026-09-27
+Last updated: 2026-10-03
+
+DNS update: LAN clients now receive `192.168.5.2` (AdGuard Home on the Ubuntu
+host) as DNS through a Dnsmasq DHCP option; AdGuard forwards to Unbound at
+`192.168.5.1`. See [DNS filtering](05-dns-filtering.md). One unresolved
+conflict with the Tailscale section below: ports `53` and `3000` to
+`192.168.5.2` timed out over Tailscale while `22` worked, even though the
+recorded rule and Grant are described as allow-all. Inspect the live policy
+before relying on either description.
 
 Source: [Part 1 v6 reference](reference/ThinkCentre_OPNsense_Self_Managed_Setup_Part_1_v6.docx).
 The topology below is recorded configuration and past test results. Fresh

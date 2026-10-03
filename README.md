@@ -32,9 +32,11 @@ LAN test, DuckDNS, and Tailscale remote access tested from an external hotspot.
 These are historical results, not fresh live verification. Markdown is the
 ongoing record as work moves from ChatGPT web into IDE-based Codex.
 
-The next milestone is **network-wide DNS filtering / ad blocking**, adapting
-FUTO to OPNsense. Start by comparing Unbound blocklists with AdGuard Home and
-inspecting the private LAN's actual DNS path. No filtering engine is selected yet.
+**Network-wide DNS filtering / ad blocking** is working for the one wired LAN
+client tested: AdGuard Home runs on the Ubuntu host and forwards to OPNsense
+Unbound, with DHCP handing it out. Encrypted upstream DNS (DoT), enforcement
+against devices that bypass it, and several smaller checks are still open. See
+`docs/05-dns-filtering.md` and the next-session handoff.
 
 ## Documentation
 
@@ -43,10 +45,10 @@ inspecting the private LAN's actual DNS path. No filtering engine is selected ye
 - `docs/decisions.md` — important architectural decisions
 - [Network and access](docs/03-network-and-access.md) — topology, recorded
   configuration, verification, and recovery gaps
-- [Next-session handoff](docs/04-next-session.md) — DNS filtering agenda
-  and a prompt for a new chat
-- [DNS evaluation and baseline](docs/05-dns-filtering.md) — architecture
-  comparison, fresh observations, and remaining read-only inspection
+- [Next-session handoff](docs/04-next-session.md) — open items after DNS
+  filtering and a prompt for a new chat
+- [DNS filtering](docs/05-dns-filtering.md) — evaluation, implementation
+  record, and unresolved items
 - [Part 1 v6 reference](docs/reference/ThinkCentre_OPNsense_Self_Managed_Setup_Part_1_v6.docx)
   — historical setup record and local adaptations of FUTO
 - `history/` — dated work logs

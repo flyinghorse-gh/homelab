@@ -151,3 +151,85 @@ and ad blocking, matching DOCX section 8.3. This supersedes the earlier starting
 point. Compare Unbound blocklists and AdGuard Home before choosing an engine;
 no implementation decision has been made. Retain unfinished foundation checks
 as open tasks, without automatically repeating the installation chapter.
+(The engine choice was made later: see ADR-011.)
+
+---
+
+## ADR-011 — AdGuard Home on the Ubuntu Host for DNS Filtering
+
+Date: 2026-10-01
+
+Decision:
+
+Use AdGuard Home as the DNS filter, running as a systemd service on the Ubuntu
+host, bound only to the host's LAN address `192.168.5.2` (DNS `53`, dashboard
+`3000`). Its only upstream is OPNsense Unbound at `192.168.5.1`, with no
+fallback servers. Unbound keeps its stock recursive configuration.
+
+Reason:
+
+The user wanted an easy on/off switch and per-client rules in a dashboard.
+Unbound's built-in blocklist has only limited per-source controls. No
+AdGuard Home plugin was available in the OPNsense plugin list (including
+community plugins) on `26.7`, and running a third-party repository on the
+firewall was judged a worse trade-off than the host. The official binary on the
+host keeps the firewall unchanged.
+
+Consequences:
+
+- The host is a dependency for LAN DNS. The VM and the filter share one machine,
+  so there is no hardware redundancy.
+- The service must come up after `br-lan` has its address; this held in one
+  reboot test (see current state).
+- The dashboard is not exposed beyond the LAN. The setup wizard was bound to
+  the LAN address (`-h 192.168.5.2`) because it listens on all interfaces by
+  default and the host also has an upstream Wi-Fi link.
+
+---
+
+## ADR-012 — Clients Use AdGuard Home Directly, With No Secondary DNS
+
+Date: 2026-10-02
+
+Decision:
+
+Hand out AdGuard Home as the only DNS server through a Dnsmasq DHCP option
+`dns-server [6]` = `192.168.5.2` on the LAN. Do not add `192.168.5.1` or a
+public resolver as a second server.
+
+Reason:
+
+Per-client rules need AdGuard Home to see each client's real address, which a
+chain through Unbound would hide. A second server would let devices skip the
+filter. The accepted cost is that DNS stops for LAN clients if the host or
+service is down.
+
+Rollback:
+
+Delete or disable the DHCP option, Apply, and renew client leases. A single PC
+can be pointed at `192.168.5.1` by hand.
+
+Open: enforcement against devices that use their own DNS is not decided.
+
+---
+
+## ADR-013 — Privacy Posture: Filter First, Encrypted DNS and VPN Separately
+
+Date: 2026-10-02
+
+Decision:
+
+DNS filtering reduces tracker and telemetry traffic and keeps query logs on
+the user's own hardware, but it is not anonymity. Keep short log retention and
+leave AdGuard's Browsing security and Parental control off, because those send
+queries to AdGuard's servers. Treat DNS over TLS to a chosen no-log resolver as
+a separate, later change, and a VPN for outbound traffic as its own chapter.
+Do not change the Tailscale design (access to the LAN only, no exit node) for
+this. Tailscale is an inbound access tunnel; it does not hide the home
+connection from sites.
+
+Reason:
+
+The user's goal is to share as little data as possible. Each layer protects
+against a different party, and moving to DoT or a VPN only shifts trust to the
+resolver or VPN provider. No DoT resolver or VPN provider has been selected.

@@ -1,9 +1,12 @@
 # DNS Filtering Evaluation and Baseline
 
-Last updated: 2026-09-27
+Last updated: 2026-10-03
 
-Status: architecture not selected. Inspection and documentation only; nothing
-installed or reconfigured. Unbound remains a provisional recommendation.
+Status: **implemented** with AdGuard Home on the Ubuntu host (ADR-011 to
+ADR-013). The sections up to "Gate Before Implementation" are the original
+2026-09-27 evaluation and are kept as the record of why; the "Implementation
+Record — 2026-10-01 to 2026-10-03" section at the end is the current state.
+The Unbound-first recommendation below was superseded by the user's choice.
 
 ## Reference and Scope
 
@@ -151,5 +154,104 @@ DHCP change needs its own recorded previous values and lease-transition plan.
 For AdGuard Home, plan restoration of prior client/DHCP DNS if its service fails.
 Do not introduce a public secondary resolver as a substitute for local recovery.
 
-No implementation, filter-effectiveness test, rollback test, DHCP validation,
-or external-hotspot management retest has been completed in this session.
+As of the 2026-09-27 evaluation, no implementation, filter-effectiveness test,
+rollback test, DHCP validation, or external-hotspot management retest had been
+completed. The record below supersedes that.
+
+## Implementation Record — 2026-10-01 to 2026-10-03
+
+All results below are from output the user pasted (Ubuntu host, OPNsense
+WebGUI, Windows PowerShell, AdGuard dashboard). The agent ran none of these
+commands. Where a value is inferred, it says so.
+
+### Pre-change inspection (OPNsense WebGUI, read-only)
+
+| Item | Observed |
+|---|---|
+| Unbound General | Enabled, port `53`, interfaces `All`, DNSSEC unchecked, other boxes unchecked |
+| Query Forwarding | Only `home.arpa` → `127.0.0.1:53053` ("Forward default domain to Dnsmasq DHCP"); Use System Nameservers unchecked |
+| Unbound Blocklist | Disabled, nothing selected |
+| DNS over TLS | Empty |
+| Dnsmasq General | Enabled on LAN; DNS listen port `53053`; default domain `home.arpa`; DHCP register firewall rules and Router advertisements checked |
+| DHCP ranges | One LAN range (user reported `192.168.5.100`–`.200`) |
+| DHCP options | Empty (so clients got `192.168.5.1` for DNS) |
+
+Reading: Unbound resolves recursively and is the resolver for clients; Dnsmasq
+supplies DHCP and local `home.arpa` names.
+
+### Host checks (Ubuntu, 2026-10-01)
+
+- `br-lan` `UP` with `192.168.5.2/24`.
+- Port `53` listeners before install: libvirt `dnsmasq` on `192.168.122.1` and
+  `systemd-resolved` on `127.0.0.53`/`127.0.0.54`. None on `192.168.5.2`.
+- `/` had 206 GB free. `resolvectl status` listed no DNS servers on any link.
+
+### Install
+
+1. Encrypted OPNsense backup downloaded, stored outside Git, confirmed to
+   contain no readable `<opnsense>` text.
+2. AdGuard Home `v0.107.79` (`AdGuardHome_linux_amd64.tar.gz`) downloaded from
+   the official GitHub release; `sha256sum -c checksums.txt` returned `OK`.
+3. Unpacked to `/opt/AdGuardHome`. Setup wizard started with
+   `-h 192.168.5.2 -p 3000`; `ss` showed only `192.168.5.2:3000`.
+   Wizard: web `192.168.5.2:3000`, DNS `192.168.5.2:53`.
+4. Installed with `./AdGuardHome -s install`; service `active (running)`,
+   `enabled`, listeners only on `192.168.5.2`.
+5. Upstream set to `192.168.5.1`; Query Log details: `DNS server: 192.168.5.1:53`,
+   `NOERROR`, 15 ms.
+6. Lists: AdGuard DNS filter (default) + HaGeZi's Pro Blocklist (about 277,000
+   rules). `nslookup doubleclick.net 192.168.5.2` → `0.0.0.0`, `::`.
+7. A second foreground start of the wizard command while the service ran failed
+   with `session_storage ... timeout` and exited. Harmless: the service holds the
+   session database.
+8. Dashboard password reset by editing the `users:` hash in `AdGuardHome.yaml`
+   with the service stopped. A brief `activating` state was seen; the journal
+   showed a clean start and a normal `terminated` stop (the service had been
+   stopped on purpose), no config error.
+
+### LAN client tests (Windows PC, wired, 2026-10-02)
+
+- Wired lease `192.168.5.90`, DHCP server/gateway/DNS `192.168.5.1` (before the
+  DHCP option). `example.com` resolved through Unbound. `doubleclick.net`
+  resolved to real addresses: the baseline, unfiltered.
+- Early tests to `192.168.5.2` timed out (`Test-NetConnection` reported
+  `InterfaceAlias: Tailscale`, source `100.x`): with Tailscale connected the PC
+  routed `192.168.5.x` through the tunnel, where ports `53` and `3000` failed
+  and `22` worked. With Tailscale disconnected: `InterfaceAlias: Ethernet 2`,
+  source `192.168.5.90`, port `53` reachable, `example.com` resolved,
+  `doubleclick.net` → `0.0.0.0`/`::`, `ping 192.168.5.1` 0% loss.
+- DHCP option `dns-server [6]` = `192.168.5.2` added (the first attempt used
+  the `Option6` DHCPv6 field and was rejected), then **Apply**. Before Apply the
+  lease still showed DNS `192.168.5.1`. After Apply and renew the DNS was
+  `192.168.5.2` and `doubleclick.net` returned `0.0.0.0`/`::`.
+- Allowlist cycle: Unblock `doubleclick.net` → real address; delete the allow
+  rule → blocked again.
+- IPv4 DNS `{192.168.5.2}`, IPv6 DNS `{}`; only a link-local `fe80::` IPv6
+  address. `Resolve-DnsName doubleclick.net -Server 1.1.1.1` returned real
+  addresses (bypass is possible).
+
+### Reboot check (2026-10-03)
+
+At `uptime` `up 15:56`: `virsh list` showed `opnsense` `running` (Id 1),
+`Autostart: enable`; AdGuard Home `active` (PID 1825) with listeners on
+`192.168.5.2`; blocked lookup returned `0.0.0.0`/`::`. The reboot happened
+about 16 hours earlier, so boot behaviour is inferred from the low IDs.
+
+### Unresolved
+
+- Why ports `53` and `3000` to `192.168.5.2` fail through Tailscale while `22`
+  works. `docs/03` describes broad rules, so this contradicts the recorded
+  config; inspect the live Grants/Access controls and OPNsense TAILSCALE rules.
+- The `192.168.5.90` lease versus the recorded `.100`–`.200` pool.
+- Whether log rotation/statistics retention saved a short value.
+- A `ping 192.168.5.1` timeout seen once with Tailscale connected was not
+  re-run in isolation; with Tailscale off it succeeded.
+
+### Rollback (as designed)
+
+- Undo DHCP: delete/disable the Dnsmasq DHCP option, Apply, renew leases.
+- Stop the filter: `sudo systemctl stop AdGuardHome` (then DHCP must be rolled
+  back too, or clients lose DNS).
+- Remove the service: `sudo /opt/AdGuardHome/AdGuardHome -s uninstall`.
+- Restore OPNsense from the encrypted backup if needed. No restore test has
+  been run.
