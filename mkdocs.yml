@@ -40,3 +40,4 @@ nav:
       - "Chapter 6: Dynamic DNS with DuckDNS": chapters/06-dynamic-dns-with-duckdns.md
       - "Chapter 7: Secure Remote Access with Tailscale": chapters/07-secure-remote-access-with-tailscale.md
       - "Chapter 8: Network-wide DNS Filtering": chapters/08-network-wide-dns-filtering.md
+      - "Chapter 9: Encrypted Upstream DNS with Quad9": chapters/09-encrypted-upstream-dns-with-quad9.md

@@ -14,10 +14,19 @@ git approval are not repeated here.
 
 ## Reference
 
-FUTO's "Introduction to a Self Managed Life" is the guiding reference (link in
-`README.md`). Adapt it to the ThinkCentre/Ubuntu/KVM/OPNsense design and the
+FUTO's "Introduction to a Self Managed Life" is the guiding reference:
+<https://wiki.futo.org/index.php/Introduction_to_a_Self_Managed_Life:_a_13_hour_%26_28_minute_presentation_by_FUTO_software>
+
+When unsure what comes next, fetch that page and check its chapter order.
+Adapt it to the ThinkCentre/Ubuntu/KVM/OPNsense design and the
 shared-router constraints. Do not copy dedicated-router steps blindly, and do
 not reproduce FUTO text. Summarize and link to it.
+
+FUTO's chapter order: router (pfSense), dynamic DNS, VPN (OpenVPN), ad blocking
+(pfBlockerNG), server build, DHCP, VMs vs Docker, VM networking and creation,
+then services (Mailcow email, Home Assistant, Frigate cameras, Google Drive
+replacements, FreePBX). This build differs: OPNsense instead of pfSense,
+Tailscale instead of OpenVPN, Unbound/AdGuard Home instead of pfBlockerNG.
 
 ## Two Kinds of Documentation
 

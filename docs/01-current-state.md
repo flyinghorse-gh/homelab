@@ -116,7 +116,9 @@ Tailscale is recorded as completed and externally verified:
 
 - `os-tailscale` installed on OPNsense; `tailscale0` assigned as TAILSCALE.
 - Approved advertised subnet: `192.168.5.0/24` only. No upstream subnet or
-  default route advertised; exit-node mode and Funnel off.
+  default route advertised; Funnel off. **Exit node: changed 2026-10-14**
+  (see ADR-015): OPNsense now advertises and is approved as an exit node,
+  user-reported. The earlier "exit-node mode off" is superseded.
 - Grants restricted access to the owner's identity, targeting the OPNsense
   Tailscale address and private LAN. Device-key expiry disabled for OPNsense;
   personal clients retain normal expiry.
@@ -173,7 +175,8 @@ user-pasted output on 2026-10-01 to 2026-10-03.
   service (enabled). Listens on `192.168.5.2` only: DNS `53` (UDP/TCP) and the
   dashboard `3000`. Nothing is bound to `0.0.0.0`.
 - **Query path:** LAN client → AdGuard Home `192.168.5.2:53` → Unbound
-  `192.168.5.1:53` → recursive resolution. AdGuard's only upstream is
+  `192.168.5.1:53` → Quad9 over DNS over TLS (since 2026-10-14, ADR-016; it was
+  recursive resolution before that). AdGuard's only upstream is
   `192.168.5.1`; fallback servers are empty. Query Log details showed
   `DNS server: 192.168.5.1:53`, `NOERROR`.
 - **Unbound:** unchanged stock settings. Query Forwarding holds only the default
@@ -188,9 +191,18 @@ user-pasted output on 2026-10-01 to 2026-10-03.
 - **Lists:** AdGuard DNS filter (default) plus HaGeZi's Pro Blocklist (about
   277,000 rules). `doubleclick.net` returns `0.0.0.0`/`::`; `example.com`
   resolves. An allow (Unblock) and re-block of `doubleclick.net` both worked.
-- **Not changed:** Browsing security and Parental control not enabled. The user
-  was asked to set log rotation and statistics retention to a short period; the
-  saved value was never reported back, so it is unconfirmed.
+- **Logging:** query-log rotation and statistics retention are both 24 hours,
+  with no ignored domains (user-reported 2026-10-03). Browsing security and
+  Parental control were not enabled.
+- **Remote filtering (2026-10-03):** a Tailscale grant gives the restricted
+  second account `tcp:3000`, `tcp:53` and `udp:53` to `192.168.5.2`, and the
+  tailnet DNS page has a custom nameserver `192.168.5.2` with Override DNS
+  servers on. Verified on the Windows PC over Wi-Fi: `Resolve-DnsName
+  doubleclick.net` returned `0.0.0.0`/`::` and the AdGuard Query Log showed it
+  blocked with client `192.168.5.1`. Remote clients all appear as
+  `192.168.5.1` because Tailscale forwards their traffic from the OPNsense LAN
+  address, so per-client rules cannot tell remote devices apart. Only one PC
+  was tested; phones and other devices were not.
 - **Admin access:** AdGuard dashboard password was reset by editing
   `AdGuardHome.yaml` (bcrypt hash). The password is held by the user outside
   Git. The dashboard is reached through an SSH tunnel from Windows
@@ -209,20 +221,48 @@ Known limits and open items:
 - A device or app that uses its own DNS server bypasses the filter. On the
   test PC `Resolve-DnsName doubleclick.net -Server 1.1.1.1` returned real
   addresses. No port-53 restriction or other enforcement exists.
-- Upstream DNS is plain, not encrypted (no DoT). Resolution is recursive from
-  the OPNsense VM. No anonymity is provided by DNS filtering.
+- **Updated 2026-10-14 (ADR-016):** Unbound forwards to Quad9 over DoT
+  (`9.9.9.9`, `149.112.112.112`, port `853`, verify `dns.quad9.net`). A capture
+  on `br-wan` showed port `853` traffic to `9.9.9.9`; a 20-second port `53`
+  capture showed nothing but may have been quiet. Destination IPs are still
+  visible to the ISP; no anonymity is provided by DNS filtering or DoT.
 - Over Tailscale, ports `53` and `3000` to `192.168.5.2` timed out while port
-  `22` worked. With Tailscale disconnected on the PC and traffic on the wired
-  adapter, `53` worked. `docs/03` records an allow-all TAILSCALE interface
-  rule and an all-ports Grant, which does not explain the timeouts. The cause
-  is **unresolved** and not yet inspected.
+  `22` worked. **Resolved 2026-10-03:** the tailnet policy has two identities.
+  The owner identity has all ports to OPNsense and the LAN; the second account
+  was limited to `tcp:443` to OPNsense and `tcp:22` to the Ubuntu host. The
+  OPNsense firewall live log showed the port-22 test as `LAN Out` from
+  `192.168.5.1` (pass) and no entry at all for port 3000, so the limit was in
+  the Tailscale policy, not OPNsense or the host. The grant above now allows
+  the dashboard and DNS for that account. `docs/03`'s earlier "all ports"
+  description was incomplete.
+- **Exit node (2026-10-14, ADR-015):** the tailnet policy has a "shared exit
+  node" grant (`autogroup:internet`, all ports) for both identities. The user
+  confirmed OPNsense is set to offer an exit node, approved the subnet route,
+  and uses the exit node from their devices (phone confirmed by the user).
+  Live check from the Windows laptop (`tailscale set --exit-node=opnsense`,
+  then reverted): the internet route moved from Wi-Fi to the Tailscale
+  interface, internet stayed reachable, and `doubleclick.net` still returned
+  `0.0.0.0` (filtering survives). The public IPv4 was identical because the
+  laptop was on the home network behind the same upstream router, so this
+  does not prove egress from home; a test away from home is still needed. The
+  laptop was left with no exit node selected. Not checked: whether the OPNsense
+  Tailscale-interface rule (any/any, see `docs/03`) or outbound NAT was changed
+  for this, and whether the second account's devices use it.
 - Windows with Tailscale connected sent `192.168.5.x` traffic through the
   tunnel instead of the wired link, which skewed early LAN tests. Check
   `Find-NetRoute` first.
-- The test PC's wired lease was `192.168.5.90`, below the recorded
-  `192.168.5.100`–`.200` pool. The DHCP ranges tab was never re-read after it.
-- Remote (Tailscale) clients still use their existing DNS. Tailscale DNS was
-  not changed.
+- The test PC's wired lease was `192.168.5.90`, outside the DHCP range, which
+  the WebGUI confirms is `192.168.5.100`–`192.168.5.200`. The reason is
+  unexplained; a static reservation (Hosts tab) or an older lease are
+  candidates and were not checked.
+- A broadcast from `192.168.5.165` was blocked on the WAN interface
+  ("Block private networks from WAN") on 2026-10-03. Some device on the
+  upstream side uses a `192.168.5.x` address, overlapping the private LAN. Not
+  identified. `docs/03` says the wizard disabled the private-network block, yet
+  that rule is active.
+- The Tailscale DNS override is tailnet-wide: any device that cannot reach
+  `192.168.5.2` loses DNS until the setting is switched off. Rollback is
+  turning off Override DNS servers in the admin console.
 - Other LAN devices, a second client and the physical switch/AP deployment have
   not been tested. The household stays on the upstream router.
 

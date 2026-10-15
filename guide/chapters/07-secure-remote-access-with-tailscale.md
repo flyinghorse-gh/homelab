@@ -60,7 +60,10 @@ ssh <user>@100.a.b.c  # Ubuntu Tailscale IP
 
 ## Important Security
 
-- **Do NOT enable exit node mode.** OPNsense is for private LAN access only.
+- **Exit node is optional and off by default.** An exit node sends *all* of a
+  device's internet traffic through your home connection. Leave it off until
+  you want that. The author turned it on later and checked that DNS filtering
+  (Chapter 8) still works with it; see the optional note below.
 - **Firewall rules apply.** Tailscale bypasses upstream NAT, but OPNsense firewall still protects.
 - **Keep device key secure.** Revoke compromised keys in admin console.
 
@@ -73,6 +76,20 @@ Then remove OPNsense from Tailscale admin.
 
 ??? question "Why Tailscale over WireGuard?"
     Simpler (no key management), works through double NAT, free tier available.
+
+??? question "What is an exit node, and should I turn it on?"
+    An *exit node* is a device on your tailnet that other devices can send all
+    their internet traffic through. Sites then see your home connection's
+    address, and the speed is limited by your home upload speed. It is
+    optional. If you turn it on, you must advertise it in the OPNsense
+    Tailscale settings, approve it in the Tailscale admin console, and have a
+    policy rule allowing `autogroup:internet`. On the device, select it
+    (`tailscale set --exit-node=<MACHINE_NAME>`) and undo it with
+    `tailscale set --exit-node=`. Check that the device's internet route uses
+    the `Tailscale` interface and that DNS filtering still works. If the
+    device is on your home network, the public IP will not change, so test it
+    away from home to prove it. *(Planned: the author's away-from-home test is
+    not finished yet.)*
 
 ??? question "Can friends access my homelab?"
     Not by default. You'd need to add them as Tailscale users (separate decision).

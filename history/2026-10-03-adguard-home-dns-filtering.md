@@ -21,7 +21,16 @@ results. The agent did not touch the server. Details and evidence:
   autostart enabled, AdGuard Home active and bound, blocking still working.
   Documentation updated; guide Chapter 8 rewritten from this work.
 
-Decisions: ADR-011 (AdGuard Home on the host), ADR-012 (single DHCP DNS
+- **2026-10-03 (later):** committed and pushed the documentation as `463999b`.
+  Confirmed the DHCP range (`.100`–`.200`) and 24-hour log retention. Traced the
+  Tailscale port-22-only behaviour to the tailnet policy via the OPNsense live
+  firewall log (no entry for port 3000) and the policy text. Added a grant for
+  the second account (`3000`, `53` TCP/UDP to the host) and set the tailnet DNS
+  override to the host; verified on one Windows PC (blocked lookup, Query Log
+  client `192.168.5.1`). Added ADR-014. Noticed a blocked WAN broadcast from an
+  unidentified `192.168.5.165` and an unexplained exit-node grant.
+
+Decisions: ADR-014 (remote DNS through Tailscale), ADR-011 (AdGuard Home on the host), ADR-012 (single DHCP DNS
 server), ADR-013 (privacy posture).
 
 Not done: DNS over TLS, enforcement against devices using their own DNS,

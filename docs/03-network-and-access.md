@@ -4,11 +4,28 @@ Last updated: 2026-10-03
 
 DNS update: LAN clients now receive `192.168.5.2` (AdGuard Home on the Ubuntu
 host) as DNS through a Dnsmasq DHCP option; AdGuard forwards to Unbound at
-`192.168.5.1`. See [DNS filtering](05-dns-filtering.md). One unresolved
-conflict with the Tailscale section below: ports `53` and `3000` to
-`192.168.5.2` timed out over Tailscale while `22` worked, even though the
-recorded rule and Grant are described as allow-all. Inspect the live policy
-before relying on either description.
+`192.168.5.1`. See [DNS filtering](05-dns-filtering.md). Remote devices also use
+it: the tailnet DNS page has `192.168.5.2` as the global nameserver with
+override on (2026-10-03, verified on one Windows PC).
+
+Correction to the Tailscale section below (2026-10-03): the live tailnet policy
+has two identities. The owner identity has all ports to the OPNsense Tailscale
+address and `192.168.5.0/24`. A second account originally had only `tcp:443` to
+OPNsense and `tcp:22` to the Ubuntu host; a grant now also gives it `tcp:3000`,
+`tcp:53` and `udp:53` to `192.168.5.2`. The policy also has a shared
+exit-node grant for both identities. Identities and addresses are deliberately
+not recorded here.
+
+Exit node update (2026-10-14, ADR-015): OPNsense now offers a Tailscale exit
+node, approved in the admin console, and the user's devices can use it. This
+supersedes the "no exit node" statements in the Tailscale section below.
+Verified live from the Windows laptop: with the exit node selected the internet
+route used the Tailscale interface and DNS filtering still worked; the laptop
+was then reverted. The user reports checking it personally and that it works
+(network not stated). Firewall/NAT evidence (user screenshots): Hybrid outbound
+NAT with one manual WAN rule translating `100.64.0.0/10` to the interface
+address, which lets exit-node traffic leave; the TAILSCALE interface keeps the
+pass-any rule; no floating rules. Details in ADR-015.
 
 Source: [Part 1 v6 reference](reference/ThinkCentre_OPNsense_Self_Managed_Setup_Part_1_v6.docx).
 The topology below is recorded configuration and past test results. Fresh
@@ -74,7 +91,8 @@ or chat: it can contain credentials. DDNS does not itself open ports or bypass N
 - OPNsense uses `os-tailscale`; `tailscale0` is assigned as TAILSCALE without
   manually configured interface addresses.
 - Recorded settings: listen port `41641`, Accept DNS off, Accept Subnet Routes
-  off, no exit node. The advertised and approved route is `192.168.5.0/24` only.
+  off. The advertised and approved subnet route is `192.168.5.0/24` only. (Exit
+  node was "none" when recorded; it is now on, see the 2026-10-14 update above.)
 - The recorded active firewall rule passes inbound traffic on TAILSCALE with
   any source, destination, and protocol. This broad interface rule is paired
   with an owner-only Tailscale Grant, not a port-restricted firewall policy.
@@ -82,8 +100,8 @@ or chat: it can contain credentials. DDNS does not itself open ports or bypass N
   and private LAN on all ports. Actual identity/IP and current policy need
   inspection; placeholders in the reference are not deployable configuration.
 - OPNsense device-key expiry is disabled; personal clients use normal expiry.
-- No Funnel, exit node, default-route advertisement, upstream subnet
-  advertisement, or public port forward is recorded.
+- No Funnel, upstream subnet advertisement, or public port forward is recorded.
+  An exit node is now offered (2026-10-14, ADR-015); earlier text said none.
 - HTTPS WebGUI retains default/all listen interfaces and anti-lockout enabled.
   Empty WAN rules and NAT port forwards were reported in the exposure audit;
   this historical observation is not a fresh audit of all exposure paths.

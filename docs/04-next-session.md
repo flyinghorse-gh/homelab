@@ -1,6 +1,6 @@
 # Next Session Handoff
 
-Last updated: 2026-10-03
+Last updated: 2026-10-14
 
 ## Goal and References
 
@@ -35,24 +35,30 @@ Chapter 8 documents the verified core.
 
 Smallest first. Each needs inspection, then a small verified change.
 
-1. **Confirm settings the user never reported:** the DHCP ranges tab (the test
-   PC was leased `192.168.5.90`, below the recorded `.100`–`.200` pool) and the
-   AdGuard log rotation / statistics retention values.
-2. **Tailscale port restriction (unresolved):** over Tailscale, ports `53` and
-   `3000` to `192.168.5.2` timed out while `22` worked, though `docs/03`
-   records an allow-all TAILSCALE rule and an all-ports Grant. Inspect the live
-   Tailscale Access controls and the OPNsense TAILSCALE rules before changing
-   anything. Decide whether the dashboard should keep using an SSH tunnel or
-   get a deliberate, narrow allow rule for port `3000` with a rollback.
-3. **Remote devices:** Tailscale clients still use their existing DNS; filtering
-   them is a separate decision.
+1. **Explain the `192.168.5.90` lease (in progress, 2026-10-14).** Dnsmasq
+   Hosts and Leases tabs were empty (user-reported), so it is not a
+   reservation. The PC's Ethernet was unplugged. When back at the wired PC:
+   plug in, run `ipconfig /renew "Ethernet 2"`, check the new IP, DHCP server
+   and lease times, then confirm the lease in the OPNsense Leases tab. Most
+   likely `.90` came from an older pool setting.
+2. **Remote filtering (ADR-014) is now tested on two Windows devices** (PC and
+   laptop; the laptop was on the home network, not truly remote). Still to do:
+   a phone on mobile data, the failure case (host down), and identify the
+   unknown device at `192.168.5.165` seen on the WAN side.
+3. **Exit node (ADR-015, 2026-10-14):** OPNsense offers an exit node; phone use
+   is user-reported. Remaining: test from mobile data and confirm the public IP
+   is the home IP (do not paste it). Destination NAT has no user rules
+   (2026-10-14). Optionally describe the manual outbound NAT rule for
+   `100.64.0.0/10`. The second account keeps the exit-node grant (decided
+   2026-10-14). Save a copy of the policy outside Git. Rollback is in ADR-015.
+3. **Policy hygiene:** keep a saved copy of the tailnet policy outside Git. The
+   repo must never contain account addresses or the OPNsense Tailscale address.
 4. **Optional per-client rules** in the AdGuard dashboard once the user decides
    which devices need different treatment.
-5. **DNS over TLS (planned):** Unbound would forward to a chosen no-logging
-   resolver over TLS, replacing recursive mode. The user asked for as much
-   privacy as possible. Compare resolvers' policies first, then change one
-   thing, verify, and keep a rollback. Explain that this moves trust from the
-   ISP to the resolver and does not hide destination IPs.
+5. **DNS over TLS: done 2026-10-14 (ADR-016, guide chapter 9).** Remaining:
+   repeat the `tcpdump -ni br-wan 'port 53'` capture while browsing to prove no
+   plain DNS leaves, check the AdGuard Query Log still shows `NOERROR`, and
+   optionally add a threat-intelligence list in AdGuard.
 6. **Enforcement against bypass (separate decision):** a lookup straight to
    `1.1.1.1` is not filtered. A port-53 firewall rule helps but does not stop
    browser DoH or VPNs. Supply a specific rollback before any firewall change.
@@ -94,9 +100,11 @@ Update current state, component docs, decisions where needed, dated history,
 the guide chapter and this handoff after meaningful work. Record actual checks
 and unresolved items; distinguish historical evidence from live observations.
 
-The documentation updates for DNS filtering are **uncommitted**. Inspect `git
-status` when resuming. Ask for explicit approval before committing and again
-before pushing, including to `main`. Present the diff, the privacy-check result
+Commit `463999b` (DNS filtering docs) was committed and pushed to `origin/main`
+with the user's approval on 2026-10-03. The later remote-filtering and
+Tailscale-policy updates are **uncommitted**. Inspect `git status` when
+resuming. Ask for explicit approval before committing and again before pushing,
+including to `main`. Present the diff, the privacy-check result
 (`python scripts/docs/check-guide.py`), the site build result, and the push
 destination before asking.
 

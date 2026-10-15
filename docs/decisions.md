@@ -225,7 +225,7 @@ leave AdGuard's Browsing security and Parental control off, because those send
 queries to AdGuard's servers. Treat DNS over TLS to a chosen no-log resolver as
 a separate, later change, and a VPN for outbound traffic as its own chapter.
 Do not change the Tailscale design (access to the LAN only, no exit node) for
-this. Tailscale is an inbound access tunnel; it does not hide the home
+this. (The no-exit-node part was later superseded by ADR-015.) Tailscale is an inbound access tunnel; it does not hide the home
 connection from sites.
 
 Reason:
@@ -233,3 +233,152 @@ Reason:
 The user's goal is to share as little data as possible. Each layer protects
 against a different party, and moving to DoT or a VPN only shifts trust to the
 resolver or VPN provider. No DoT resolver or VPN provider has been selected.
+
+---
+
+## ADR-014 — Remote Devices Use AdGuard Home Through Tailscale
+
+Date: 2026-10-03
+
+Decision:
+
+Give the restricted second Tailscale account `tcp:3000`, `tcp:53` and `udp:53`
+to the Ubuntu host `192.168.5.2` in the tailnet policy, and set the tailnet's
+global nameserver to `192.168.5.2` with Override DNS servers on, so remote
+devices are filtered too. Remote devices reach it over the existing
+`192.168.5.0/24` subnet route. This refines ADR-008 (Tailscale design) and
+overrides the earlier "keep remote Tailscale DNS unchanged initially" plan.
+The firewall, subnet advertisement and no-exit-node design are unchanged.
+
+Reason:
+
+The user wants filtering and dashboard access away from home. The second
+account had been deliberately limited to OPNsense `443` and SSH `22`; widening
+it is accepted for these three ports on one address only.
+
+Consequences:
+
+- The setting is tailnet-wide: a device that cannot reach `192.168.5.2` loses
+  DNS until the override is turned off.
+- Remote devices all appear in AdGuard as `192.168.5.1`, so they cannot have
+  separate per-client rules.
+- Networks that also use `192.168.5.x` will break the route.
+
+Rollback:
+
+Turn off Override DNS servers (or delete the nameserver) in the Tailscale admin
+console; remove the added grant from the policy. Keep a saved copy of the policy
+outside Git. Tested on one Windows PC only. Account identities, the OPNsense
+Tailscale address and the policy text are not stored in this repository.
+
+---
+
+## ADR-015 — OPNsense Offers a Tailscale Exit Node
+
+Date: 2026-10-14 (user-reported change; verified in part live the same day)
+
+Decision:
+
+OPNsense advertises itself as a Tailscale exit node, approved in the admin
+console, so the user's devices can route all internet traffic through the home
+connection and OPNsense. The tailnet policy already had a shared grant
+(`autogroup:internet`, all ports) for both identities, so both accounts are
+permitted to use it. This supersedes the "no exit node" parts of ADR-008,
+ADR-013 and ADR-014. The `192.168.5.0/24` subnet route is unchanged and still
+approved. No public port forward and no upstream router change were added.
+
+Reason:
+
+The user wants their devices filtered and routed through the home network when
+away from it, and uses it from their own devices (phone confirmed by the user).
+
+Consequences:
+
+- Websites see the home ISP address for devices using the exit node. Traffic is
+  limited by home upload speed and depends on OPNsense and the host being up.
+- The grant is broad (`ip: *`) and applies to both accounts, including the
+  restricted second account, which was otherwise limited to a few ports.
+- **Decided 2026-10-14:** the user chose to keep the exit-node grant for the
+  second account as well. It stays broad on purpose; revisit only if that
+  account's role changes.
+- It is the policy, not each device's setting, that allows exit-node use; a
+  device only uses it when the user selects it.
+- With the exit node selected, DNS filtering still worked on the test laptop.
+
+Firewall/NAT state (from user screenshots of the WebGUI, 2026-10-14):
+Firewall → Rules shows interface rules for LAN (IPv4 and IPv6 allow-any) and
+one TAILSCALE rule, "Allow Tailscale to OPNsense", source/destination/protocol
+all `*`. Floating rules: none (user-reported). Firewall → NAT → Outbound mode
+is **Hybrid**, with one manual rule: WAN, IPv4, source `100.64.0.0/10`, any
+destination, translate to interface address, no description. That rule is what
+lets exit-node traffic leave through the upstream router; it is not an inbound
+rule. Port forwards: this OPNsense has no "Port Forward" page; Firewall → NAT →
+Destination NAT shows no user rules, only the collapsed "Automatically
+generated rules" group (screenshot, 2026-10-14). The auto-generated entries
+were not expanded, so their contents are unrecorded.
+
+Verification (live, Windows laptop on the home network, 2026-10-14):
+route to the internet moved to the Tailscale interface and internet stayed
+reachable; `doubleclick.net` returned `0.0.0.0`; the laptop was reverted to no
+exit node. Public IP could not differ at home. Not verified: use away from home,
+whether OPNsense firewall/NAT was edited for this, and the OPNsense setting
+itself (user-reported only).
+
+Rollback:
+
+Untick the exit-node route in the Tailscale admin console and turn off the
+exit-node advertisement in the OPNsense Tailscale plugin. Devices must stop
+selecting it. Tighten or remove the `autogroup:internet` grant if it is no
+longer wanted. Keep a saved copy of the policy outside Git.
+
+---
+
+## ADR-016 — Unbound Forwards to Quad9 Over DNS over TLS
+
+Date: 2026-10-14 (user ran the change; capture output pasted by the user)
+
+Decision:
+
+Unbound on OPNsense forwards all lookups to Quad9 over DNS over TLS
+(`9.9.9.9` and `149.112.112.112`, port `853`, verify name `dns.quad9.net`),
+instead of resolving recursively over plain DNS. AdGuard Home still sits in
+front and still uses Unbound at `192.168.5.1` as its only upstream. The
+Query Forwarding `home.arpa` rule is unchanged. This resolves the "DNS over TLS
+(planned)" item in ADR-013.
+
+Reason:
+
+The user wants the internet provider not to read their lookups and wants
+built-in malware blocking. Quad9's recommended address blocks known malware and
+validates DNSSEC. The provider's published policy (Swiss non-profit, says it
+does not store IP addresses or query names) was read on 2026-10-14; it is a
+stated policy, not something verified here. The `dns11` (ECS) variant was
+rejected because it shares part of the client network. Mullvad DNS was rejected
+because its page announces it ends on 2026-11-02. A self-run resolver on a
+rented server was considered and deferred.
+
+Consequences:
+
+- The ISP sees an encrypted connection to Quad9, not the names looked up. It
+  still sees destination IP addresses; this is not anonymity.
+- Trust moves to Quad9. If Quad9 or port `853` is unreachable, lookups fail
+  until the entries are removed.
+- Malware blocking now comes from Quad9 in addition to AdGuard's lists.
+
+Verification:
+
+User-reported: three `Resolve-DnsName` checks passed (normal answers plus
+`0.0.0.0` for `doubleclick.net`). Live capture on the Ubuntu host (user ran,
+output pasted): on `br-wan`, port `853` showed TCP packets between the OPNsense
+WAN address and `9.9.9.9`; port `53` showed 0 packets in a 20-second window that
+may have been quiet. User-reported dnsleaktest extended test (2026-10-14): three resolvers, all on
+Packet Clearing House's resolver network (the operator behind Quad9), in one
+US city; no ISP resolver and no home IP listed, so no leak seen from that
+device. Not seen: the AdGuard Query Log or Unbound log after the change, and a
+plain-DNS capture taken while browsing.
+
+Rollback:
+
+Delete both entries under Services → Unbound DNS → DNS over TLS and Apply
+(returns to recursive mode). An encrypted OPNsense backup was taken beforehand
+(user-reported; stored outside the repository).

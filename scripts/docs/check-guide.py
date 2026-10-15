@@ -13,6 +13,9 @@ TOKEN = re.compile(r"\b(?:tskey-[\w-]+|[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{1
 URL = re.compile(r"https?://\S+")
 KEYWORDS = re.compile(r"(?i)\b(?:password|token|secret)\s*[:=]\s*\S+")
 
+# Well-known public DNS resolver addresses (not the author's own values).
+PUBLIC_RESOLVERS = {"8.8.8.8", "9.9.9.9", "149.112.112.112"}
+
 problems = []
 for path in sorted(GUIDE.rglob("*.md")):
     for n, line in enumerate(path.read_text(encoding="utf8").splitlines(), 1):
@@ -29,7 +32,7 @@ for path in sorted(GUIDE.rglob("*.md")):
                 ip = ipaddress.ip_address(m.group())
             except ValueError:
                 continue
-            if (not ip.is_private or ip in ipaddress.ip_network("100.64.0.0/10")) and m.group() != "8.8.8.8":
+            if (not ip.is_private or ip in ipaddress.ip_network("100.64.0.0/10")) and m.group() not in PUBLIC_RESOLVERS:
                 problems.append(f"{rel}:{n}: non-private or Tailscale IP {m.group()}")
 
         # Check for real MAC addresses (exclude standard/placeholder ones)

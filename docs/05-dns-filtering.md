@@ -237,13 +237,44 @@ At `uptime` `up 15:56`: `virsh list` showed `opnsense` `running` (Id 1),
 `192.168.5.2`; blocked lookup returned `0.0.0.0`/`::`. The reboot happened
 about 16 hours earlier, so boot behaviour is inferred from the low IDs.
 
+### Tailscale port restriction and remote filtering (2026-10-03)
+
+- OPNsense Firewall → Log Files → Live View, filtered on `192.168.5.2`, with the
+  PC on Wi-Fi + Tailscale: the port-22 test appeared as `LAN Out`, source
+  `192.168.5.1`, pass (rule "let out anything from firewall host itself"); the
+  ping the same way; **no line at all** for port 3000. Tailscale therefore
+  opens the connections from the firewall itself, and the port-3000 attempt
+  never reached OPNsense.
+- Tailscale Access controls (read by the user; contents not recorded here):
+  the owner identity has all ports to OPNsense and the LAN; the second account
+  had `tcp:443` to OPNsense and `tcp:22` to the Ubuntu host; a shared
+  exit-node grant exists. So the restriction was in the policy, and was
+  deliberate.
+- Added a grant for the second account: `tcp:3000`, `tcp:53`, `udp:53` to
+  `192.168.5.2`. Result from the PC: `Test-NetConnection ... -Port 3000` True;
+  `Resolve-DnsName doubleclick.net -Server 192.168.5.2` → `0.0.0.0`/`::`.
+- Tailscale admin DNS: custom nameserver `192.168.5.2`, Override DNS servers
+  on. `Resolve-DnsName doubleclick.net` with no `-Server` returned `0.0.0.0`/`::`
+  and the Query Log showed it blocked (AdGuard DNS filter), client `192.168.5.1`.
+- Not tested: phones, other OSes, Linux with subnet routes off, a network that
+  also uses `192.168.5.x`, behaviour when the host is down.
+
+### Other findings
+
+- DHCP ranges tab: `192.168.5.100`–`192.168.5.200` (screenshot, 2026-10-03).
+- Log rotation and statistics retention: 24 hours, no ignored domains.
+- WAN live log showed a blocked UDP `137` broadcast from `192.168.5.165`
+  ("Block private networks from WAN"): an upstream-side device with a
+  `192.168.5.x` address. Unidentified.
+
 ### Unresolved
 
-- Why ports `53` and `3000` to `192.168.5.2` fail through Tailscale while `22`
-  works. `docs/03` describes broad rules, so this contradicts the recorded
-  config; inspect the live Grants/Access controls and OPNsense TAILSCALE rules.
-- The `192.168.5.90` lease versus the recorded `.100`–`.200` pool.
-- Whether log rotation/statistics retention saved a short value.
+- The `192.168.5.90` lease is outside the DHCP range; cause not found.
+- ~~Which device offers an exit node.~~ Answered 2026-10-14: OPNsense (ADR-015).
+- Whether DHCP renewal on the wired PC lands in `.100`–`.200`: on 2026-10-14
+  OPNsense's Dnsmasq Hosts and Leases tabs were empty (user-reported) and the
+  PC's Ethernet was unplugged, showing a link-local address. Re-test with the
+  cable connected.
 - A `ping 192.168.5.1` timeout seen once with Tailscale connected was not
   re-run in isolation; with Tailscale off it succeeded.
 

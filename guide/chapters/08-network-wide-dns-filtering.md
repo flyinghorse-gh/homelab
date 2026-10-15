@@ -393,14 +393,71 @@ boot.
 only AdGuard failed, `sudo systemctl restart AdGuardHome`. If only the VM
 failed, `virsh start opnsense`.
 
+## Section 8.13: Filter your devices away from home (optional)
+
+This makes devices connected through Tailscale (Chapter 7) use AdGuard Home
+too, and lets a second Tailscale account open the dashboard.
+
+!!! danger "This affects every device in your tailnet"
+    The DNS setting below is tailnet-wide. A device that cannot reach
+    `<HOST_LAN_IP>` through the subnet route loses DNS until you switch it off.
+    Test on one device first and keep another way into the admin console.
+
+!!! note "What you give up"
+    Tailscale forwards remote traffic from the OPNsense LAN address, so
+    AdGuard Home sees every remote device as `<OPNSENSE_LAN_IP>`. You cannot
+    give remote devices different per-device rules. Also, a network that uses
+    the same address range as your LAN (many do) will not reach your host.
+
+**Step 1: allow the ports (only if an account is port-restricted).**
+Tailscale's **Access controls** can limit what each account reaches. Before
+editing, copy the whole current policy into a safe file outside Git. Then add a
+grant for the restricted account, using that account's login as
+`<SECOND_ACCOUNT>`:
+
+```text
+{
+    "src": ["<SECOND_ACCOUNT>"],
+    "dst": ["<HOST_LAN_IP>"],
+    "ip":  ["tcp:3000", "tcp:53", "udp:53"],
+},
+```
+
+**Verify** (on a device signed into that account, on Wi-Fi or mobile data, not
+on your LAN cable):
+
+```powershell
+Test-NetConnection <HOST_LAN_IP> -Port 3000
+Resolve-DnsName doubleclick.net -Server <HOST_LAN_IP>
+```
+
+Port `3000` connects and the lookup returns `0.0.0.0`. The dashboard also loads
+at `http://<HOST_LAN_IP>:3000` without an SSH tunnel.
+
+**Rollback:** remove the grant, or restore the saved policy.
+
+**Step 2: set the tailnet DNS.** Tailscale admin console → **DNS** →
+**Nameservers → Add nameserver → Custom**, enter `<HOST_LAN_IP>`, save, and
+turn on **Override DNS servers**.
+
+**Verify:** on a device away from your LAN, `Resolve-DnsName doubleclick.net`
+(no `-Server`) returns `0.0.0.0`, and the AdGuard **Query Log** shows it
+blocked with client `<OPNSENSE_LAN_IP>`. Browsing still works.
+
+**Rollback:** turn off **Override DNS servers** or delete the nameserver.
+Devices recover within about a minute (`ipconfig /flushdns` helps on Windows).
+A single device can opt out with **Use Tailscale DNS settings** off in its app.
+
+On the author's build this was tested on one Windows PC only. Check phones and
+other systems yourself, since subnet-route handling differs by platform.
+
 ## Planned (not yet done)
 
 These are intentionally outside this chapter's verified scope:
 
-- **Encrypted upstream DNS (DNS over TLS).** Today Unbound resolves on its own
-  over ordinary DNS, so your internet provider can see that traffic. Encrypting
-  it moves trust to whichever resolver you pick. Choose one with a no-logging
-  policy you accept.
+- **Encrypted upstream DNS (DNS over TLS).** Done after this chapter; see
+  [Chapter 9](09-encrypted-upstream-dns-with-quad9.md). Until then Unbound
+  resolves on its own over ordinary DNS, which your internet provider can see.
 - **Stopping devices from skipping the filter.** An app or device that uses its
   own DNS server (a lookup straight to a public resolver still returned real
   addresses on the author's PC) bypasses AdGuard Home. A firewall rule that
@@ -414,9 +471,13 @@ These are intentionally outside this chapter's verified scope:
 
 ??? question "The dashboard will not open from my PC"
     First check whether your remote-access tool is sending LAN traffic through
-    its tunnel (see the Tailscale warning in 8.9). If your access rules allow
-    only some ports, a dashboard on port `3000` can time out even though SSH
-    works. A safe workaround that changes no firewall rule is an SSH tunnel
+    its tunnel (see the Tailscale warning in 8.9). If your Tailscale access
+    rules allow only some ports for that account, a dashboard on port `3000`
+    can time out even though SSH works. The OPNsense **Firewall → Log Files →
+    Live View** helps tell the two apart: a port that is allowed shows a pass
+    line, and no line at all means the traffic never reached OPNsense, so look
+    at the Tailscale policy (Section 8.13). A safe workaround that changes no
+    firewall rule is an SSH tunnel
     from your PC: `ssh -L 3000:<HOST_LAN_IP>:3000 <USER>@<HOST_LAN_IP>`, then
     browse to `http://localhost:3000` while it stays open.
 
